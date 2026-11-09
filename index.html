@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="th" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>בקשת הלוואה</title>
+<title>คำขอสินเชื่อ</title>
 <style>
   :root { --bg:#f3f6fb; --card:#fff; --fg:#1c2433; --muted:#667085; --line:#e1e6f0; --accent:#3b6fd8; --red:#c0392b; --green:#2e8b57; }
-  body { background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; margin:0; padding:16px; line-height:1.6; font-size:16px; }
+  body { background:var(--bg); color:var(--fg); font-family: system-ui, "Leelawadee UI", "Tahoma", sans-serif; margin:0; padding:16px; line-height:1.6; font-size:16px; }
   main { max-width:620px; margin:0 auto; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
   h1 { font-size:20px; margin:0 0 6px; }
@@ -16,7 +16,6 @@
   button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
   .muted { color:var(--muted); font-size:14px; }
   .err { color:var(--red); }
-  .ok { color:var(--green); }
   iframe { width:100%; height:80vh; border:0; border-radius:12px; background:#fff; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
   td, th { border-bottom:1px solid var(--line); padding:8px 6px; text-align:right; vertical-align:top; }
@@ -27,6 +26,19 @@
   .res .ask { color:var(--muted); font-style:italic; }
   .score { color:#fff; padding:8px; border-radius:8px; margin:6px 0; text-align:center; }
   .small { color:var(--muted); font-size:13px; }
+  .sum { font-size:16px; line-height:1.7; min-width:260px; }
+  .sum-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .sum-name { font-size:20px; font-weight:700; }
+  .sum-level { color:#fff; padding:6px 12px; border-radius:20px; font-weight:700; font-size:15px; }
+  .sum-sec { background:#f7f9fc; border:1px solid var(--line); border-radius:12px; padding:12px; margin:10px 0; }
+  .sum-sec.warn { background:#fff7ec; border-color:#f3d9a8; }
+  .sum-sec.good { background:#effaf3; border-color:#bfe6cd; }
+  .sum-title { font-weight:700; font-size:17px; margin-bottom:6px; }
+  .sum-sec ul { margin:0; padding-right:20px; }
+  .sum-sec li { margin:4px 0; }
+  .kv { display:flex; justify-content:space-between; gap:10px; border-bottom:1px dashed var(--line); padding:5px 0; }
+  .kv span { color:var(--muted); }
+  .kv b { text-align:left; }
   .welcome { position:fixed; inset:0; background:rgba(40,80,70,.35); display:none; align-items:center; justify-content:center; padding:18px; z-index:50; }
   .welcome.show { display:flex; }
   .welcome-box { background:#f4fbf7; color:#1f3d36; border:1px solid #cfe9dd; border-radius:18px; padding:22px; max-width:420px; width:100%; box-shadow:0 10px 30px rgba(20,60,50,.18); }
@@ -37,54 +49,54 @@
 </style>
 </head>
 <body>
+<main>
+
 <div id="welcome" class="welcome">
   <div class="welcome-box">
     <div class="welcome-icon">🌿</div>
-    <h2>ברוך הבא</h2>
-    <p>כאן תמלא שאלון קצר שעוזר לנו להבין את הבקשה שלך.</p>
+    <h2>ยินดีต้อนรับ</h2>
+    <p>ที่นี่คุณจะกรอกแบบสอบถามสั้นๆ เพื่อช่วยให้เราเข้าใจคำขอของคุณ</p>
     <ul>
-      <li>ההרשמה לוקחת דקה, עם מייל וסיסמה.</li>
-      <li>מקבלים 14 ימי ניסיון למילוי השאלון.</li>
-      <li>השאלון לוקח בערך 10 דקות.</li>
-      <li>אפשר לענות בקצב שלך, ולדלג על שאלה שלא נוחה.</li>
-      <li>אין צורך להכין מסמכים עכשיו. נבקש אותם רק אם יידרשו.</li>
+      <li>สมัครสมาชิกด้วยอีเมลและรหัสผ่าน ใช้เวลาเพียงไม่กี่นาที</li>
+      <li>คุณจะได้ช่วงทดลอง 14 วันสำหรับกรอกแบบสอบถาม</li>
+      <li>แบบสอบถามใช้เวลาประมาณ 10 นาที</li>
+      <li>ตอบตามจังหวะของคุณ และข้ามคำถามที่ไม่สะดวกได้</li>
+      <li>ตอนนี้ไม่ต้องเตรียมเอกสาร เราจะขอเฉพาะเมื่อจำเป็น</li>
     </ul>
-    <button id="welcomeOk">הבנתי, בוא נתחיל</button>
+    <button id="welcomeOk">เข้าใจแล้ว เริ่มกันเลย</button>
   </div>
 </div>
 
-<main>
+<div id="status" class="muted">กำลังโหลด...</div>
 
-<div id="status" class="muted">טוען...</div>
-
-<!-- כניסה / הרשמה -->
+<!-- สมัคร / เข้าสู่ระบบ -->
 <section id="authView" class="card hidden">
-  <h1>בקשת הלוואה</h1>
-  <p class="muted">הירשם כדי לקבל 14 ימי ניסיון למילוי השאלון.</p>
-  <label>אימייל<input type="email" id="email" autocomplete="email"></label>
-  <label>סיסמה (לפחות 8 תווים)<input type="password" id="password" autocomplete="current-password"></label>
-  <label>שם מלא<input type="text" id="fullName"></label>
+  <h1>คำขอสินเชื่อ</h1>
+  <p class="muted">สมัครเพื่อรับช่วงทดลอง 14 วันสำหรับกรอกแบบสอบถาม</p>
+  <label>อีเมล<input type="email" id="email" autocomplete="email"></label>
+  <label>รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)<input type="password" id="password" autocomplete="new-password"></label>
+  <label>ชื่อ-นามสกุล<input type="text" id="fullName"></label>
   <div id="authMsg" class="err"></div>
-  <button id="signupBtn">הרשמה</button>
+  <button id="signupBtn">สมัคร</button>
 </section>
 
-<!-- לקוח: שאלון -->
+<!-- ลูกค้า: แบบสอบถาม -->
 <section id="learnerView" class="hidden">
   <div class="card">
     <h2 id="trialText"></h2>
     <div class="muted" id="trialNote"></div>
-    <button id="logoutBtn" class="ghost">יציאה</button>
+    <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
   </div>
   <div id="formArea" class="card">
-    <iframe id="questionnaire" src="questionnaire.html" title="שאלון"></iframe>
+    <iframe id="questionnaire" src="questionnaire.html" title="แบบสอบถาม"></iframe>
   </div>
   <div id="expiredView" class="card hidden">
-    <h2>תקופת הניסיון הסתיימה</h2>
-    <p class="muted">לצורך המשך, פנה לנציג.</p>
+    <h2>ช่วงทดลองสิ้นสุดแล้ว</h2>
+    <p class="muted">หากต้องการดำเนินการต่อ กรุณาติดต่อเจ้าหน้าที่</p>
   </div>
 </section>
 
-<!-- מנהל -->
+<!-- ผู้ดูแลระบบ (ภาษาฮีบรู) -->
 <section id="ownerView" class="hidden">
   <div class="card">
     <h2>מנהל: בקשות ממתינות</h2>
@@ -107,7 +119,6 @@
 
   const $ = id => document.getElementById(id);
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  let mode = 'login';
 
   function show(id) {
     ['authView', 'learnerView', 'ownerView'].forEach(v => $(v).classList.toggle('hidden', v !== id));
@@ -129,25 +140,25 @@
     if (email === OWNER_EMAIL) { show('ownerView'); await loadOwner(); return; }
 
     const { data: profile, error } = await sb.from('loan_profiles').select('trial_ends_at').eq('id', session.user.id).maybeSingle();
-    if (error || !profile) { $('authMsg').textContent = 'לא נמצא פרופיל. נסה שוב או פנה לנציג.'; await sb.auth.signOut(); show('authView'); return; }
+    if (error || !profile) { $('authMsg').textContent = 'ไม่พบโปรไฟล์ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'; await sb.auth.signOut(); show('authView'); return; }
 
     const left = daysLeft(profile.trial_ends_at);
     if (left <= 0) { $('trialText').textContent = ''; $('trialNote').textContent = ''; $('formArea').classList.add('hidden'); $('expiredView').classList.remove('hidden'); show('learnerView'); return; }
-    $('trialText').textContent = `נותרו ${left} ימים לתקופת הניסיון`;
-    $('trialNote').textContent = 'אפשר למלא את השאלון בקצב שלך.';
+    $('trialText').textContent = `เหลือช่วงทดลองอีก ${left} วัน`;
+    $('trialNote').textContent = 'กรอกแบบสอบถามได้ตามจังหวะของคุณ';
     $('formArea').classList.remove('hidden');
     $('expiredView').classList.add('hidden');
     show('learnerView');
   }
 
-  // קבלת תשובות מהשאלון ושמירתן
+  // รับคำตอบจากแบบสอบถามและบันทึก
   window.addEventListener('message', async (ev) => {
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const payload = { ...ev.data.answers, summaryHtml: ev.data.summaryHtml || '' };
+    const payload = { ...ev.data.answers, name: ev.data.name || '', summaryHtml: ev.data.summaryHtml || '' };
     const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
-    if (error) { alert('השמירה נכשלה. נסה שוב או פנה לנציג.'); return; }
+    if (error) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
   });
 
   $('welcomeOk').addEventListener('click', () => {
@@ -155,42 +166,130 @@
     try { sessionStorage.setItem('welcomeSeen', '1'); } catch (e) {}
   });
 
-  // הרשמה בלבד: אחרי הרשמה מתחילה תקופת הניסיון והשאלון נפתח מיד.
-  // מי שכבר נרשם בעבר נכנס אוטומטית עם אותם פרטים.
+  // สมัครอย่างเดียว: หลังสมัครเริ่มช่วงทดลองและเปิดแบบสอบถามทันที
+  // ถ้าเคยสมัครแล้วด้วยรหัสเดิม ระบบจะเข้าสู่ระบบให้อัตโนมัติ
   $('signupBtn').addEventListener('click', async () => {
     const email = $('email').value.trim(), password = $('password').value, name = $('fullName').value.trim();
-    if (!email || password.length < 8 || !name) { $('authMsg').textContent = 'נא למלא שם, מייל וסיסמה (לפחות 8 תווים).'; return; }
+    if (!email || password.length < 8 || !name) { $('authMsg').textContent = 'กรุณากรอกชื่อ อีเมล และรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)'; return; }
     $('authMsg').textContent = '';
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
     if (error && /already/i.test(error.message)) {
       const r = await sb.auth.signInWithPassword({ email, password });
-      if (r.error) { $('authMsg').textContent = 'המייל כבר קיים עם סיסמה אחרת. פנה לנציג.'; return; }
+      if (r.error) { $('authMsg').textContent = 'อีเมลนี้มีอยู่แล้วกับรหัสผ่านอื่น กรุณาติดต่อเจ้าหน้าที่'; return; }
       await route();
       return;
     }
     if (error) { $('authMsg').textContent = error.message; return; }
     if (data.session) { await route(); return; }
-    $('authMsg').textContent = 'נשלח אליך מייל לאישור. אחרי האישור חזור לכאן והירשם שוב.';
+    $('authMsg').textContent = 'เราส่งอีเมลยืนยันให้คุณแล้ว เมื่อยืนยันแล้ว กลับมาสมัครอีกครั้งด้วยข้อมูลเดิม';
   });
 
   $('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
   $('ownerLogout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
-  // מנהל: רשימת בקשות ואישור/דחייה שמוחקים את התשובות
+  // ===== ผู้ดูแลระบบ (ภาษาฮีบรู) =====
+  const L = {
+    source: { salary: 'שכיר', self: 'עצמאי / עסק', other: 'אחר' },
+    tenure: ['עד חצי שנה', 'חצי שנה עד שנתיים', 'שנתיים עד חמש שנים', 'מעל חמש שנים'],
+    income: ['עד 10,000 בא׳ט', '10,000–20,000 בא׳ט', '20,000–35,000 בא׳ט', '35,000–50,000 בא׳ט', 'מעל 50,000 בא׳ט'],
+    obligations: ['אין החזרים', 'עד 5,000 בא׳ט', '5,000–10,000 בא׳ט', '10,000–20,000 בא׳ט', 'מעל 20,000 בא׳ט'],
+    debts: ['אין חובות', 'עד 50,000 בא׳ט', '50,000–150,000 בא׳ט', '150,000–300,000 בא׳ט', 'מעל 300,000 בא׳ט'],
+    housing: { own: 'בית פרטי', rent: 'שכירות', family: 'אצל משפחה' },
+    dependents: ['אף אחד', 'אחד', 'שניים', 'שלושה ומעלה'],
+    contact: { phone: 'טלפון', whatsapp: 'וואטסאפ', email: 'אימייל' },
+    time: { morning: 'בבוקר', noon: 'בצהריים', evening: 'בערב' },
+    scen1: ['יש חיסכון או הכנסה נוספת', 'יצמצם הוצאות', 'יבקש כסף מאחרים', 'עוד לא ברור'],
+    scen2: ['מחיסכון', 'בתשלומים מההכנסה', 'ידרוש הלוואה נוספת', 'עוד לא ברור'],
+    scen3: ['יודיע מראש ויחפש פתרון', 'יבקש דחייה קצרה', 'ימתין שזה יעבור', 'עוד לא ברור'],
+    docs: { id: 'תעודת זהות או דרכון', salary: 'תלושי שכר', bank: 'דף חשבון בנק', self: 'רישום עסק ודוחות מס', guarantor: 'ערב או בטוחה' }
+  };
+  const ok = s => (s === undefined || s === null) ? '—' : s;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  function renderSummary(a, name) {
+    if (a.income === undefined) return a.summaryHtml ? a.summaryHtml : '<span class="muted">אין נתונים</span>';
+    const flags = [];
+    const asks = [];
+    const docsNeeded = [];
+    const have = new Set(a.docs || []);
+
+    const pairs = [
+      ['income', 'income2', 'ההכנסה', L.income],
+      ['debts', 'debts2', 'החובות', L.debts],
+      ['obligations', 'obligations2', 'ההחזרים החודשיים', L.obligations],
+      ['tenure', 'tenure2', 'משך העבודה', L.tenure]
+    ];
+    pairs.forEach(([k1, k2, label, lab]) => {
+      if (a[k1] === undefined || a[k2] === undefined) return;
+      if (Math.abs(+a[k1] - +a[k2]) >= 2) {
+        flags.push(`${label} נמסרו בשתי שאלות בטווחים שונים מאוד (${lab[+a[k1]]} ו-${lab[+a[k2]]}).`);
+        asks.push(`בואו נעבור יחד על ${label}, כדי שנתאם נכון.`);
+      }
+    });
+
+    if (a.late === 'yes') { flags.push('היו איחורים בתשלומים בחצי השנה האחרונה.'); asks.push('מה קרה בתקופה הזו, ומה השתנה מאז?'); }
+
+    [['scen1', 'ירידה בהכנסה'], ['scen2', 'הוצאה דחופה'], ['scen3', 'חודש ללא תשלום']].forEach(([k, label]) => {
+      if (a[k] === undefined) return;
+      const v = +a[k];
+      if (v >= 2) flags.push(`בתרחיש של ${label}: ${L[k][v]}.`);
+      if (v === 3) asks.push(`איך היית מתמודד עם ${label}?`);
+    });
+
+    if (a.source === 'salary') { if (!have.has('salary')) docsNeeded.push(L.docs.salary); if (!have.has('bank')) docsNeeded.push(L.docs.bank); }
+    if (a.source === 'self') { if (!have.has('self')) docsNeeded.push(L.docs.self); docsNeeded.push('דף חשבון עסקי'); }
+    if (a.source === 'other') docsNeeded.push('מסמך המוכיח הכנסה');
+    if (!have.has('id')) docsNeeded.push(L.docs.id);
+    if (have.has('guarantor')) docsNeeded.push('מסמכי הערב');
+
+    const level = flags.length === 0 ? ['נמוכה', '#2e8b57'] : flags.length <= 2 ? ['בינונית', '#c98a13'] : ['גבוהה', '#c0392b'];
+    const row = (t, v) => `<div class="kv"><span>${t}</span><b>${ok(v)}</b></div>`;
+
+    return `
+      <div class="sum">
+        <div class="sum-head">
+          <div class="sum-name">${esc(name || 'ללא שם')}</div>
+          <div class="sum-level" style="background:${level[1]}">רמת סיכון: ${level[0]}</div>
+        </div>
+        <div class="sum-sec">
+          <div class="sum-title">פרטי הלקוח</div>
+          ${row('מקור הכנסה', L.source[a.source])}
+          ${row('הכנסה חודשית', L.income[+a.income])}
+          ${row('החזרים חודשיים', a.obligations !== undefined ? L.obligations[+a.obligations] : undefined)}
+          ${row('חובות כוללים', a.debts !== undefined ? L.debts[+a.debts] : undefined)}
+          ${row('משך עבודה', a.tenure !== undefined ? L.tenure[+a.tenure] : undefined)}
+          ${row('מגורים', a.housing ? L.housing[a.housing] : undefined)}
+          ${row('תלויים כלכלית', a.dependents !== undefined ? L.dependents[+a.dependents] : undefined)}
+          ${row('דרך קשר נוחה', a.contact ? L.contact[a.contact] : undefined)}
+          ${row('זמן נוח', a.time ? L.time[a.time] : undefined)}
+        </div>
+        ${flags.length ? `<div class="sum-sec warn"><div class="sum-title">לשים לב</div><ul>${flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul></div>` : `<div class="sum-sec good"><div class="sum-title">לא נמצאו נקודות לבדיקה מיוחדת</div></div>`}
+        ${docsNeeded.length ? `<div class="sum-sec"><div class="sum-title">מסמכים לבקשה</div><ul>${[...new Set(docsNeeded)].map(d => `<li>${esc(d)}</li>`).join('')}</ul></div>` : ''}
+        ${asks.length ? `<div class="sum-sec"><div class="sum-title">שאלות לשיחה</div><ul>${asks.map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>` : ''}
+        <div class="small">הסיכום הוא כלי עזר. ההחלטה נעשית לאחר בדיקת המסמכים.</div>
+      </div>`;
+  }
+
+  // רשימת בקשות ואישור/דחייה שמוחקים את התשובות
   async function loadOwner() {
     const { data: answers, error } = await sb.from('loan_answers').select('user_id, answers, submitted_at').order('submitted_at', { ascending: false });
     if (error) { $('ownerList').textContent = 'שגיאה בטעינה: ' + error.message; return; }
     const { data: profiles } = await sb.from('loan_profiles').select('id, full_name, trial_ends_at');
     const byId = Object.fromEntries((profiles || []).map(p => [p.id, p]));
     if (!answers || !answers.length) { $('ownerList').textContent = 'אין בקשות ממתינות.'; return; }
-    $('ownerList').innerHTML = '<table><tr><th>שם</th><th>הוגש</th><th>תשובות</th><th>החלטה</th></tr>' +
-      answers.map(r => {
-        const p = byId[r.user_id] || {};
-        return `<tr><td>${esc(p.full_name || '—')}</td><td>${new Date(r.submitted_at).toLocaleString('he-IL')}</td>
-          <td>${r.answers && r.answers.summaryHtml ? r.answers.summaryHtml : '<pre style="white-space:pre-wrap;font-size:12px">' + esc(JSON.stringify(r.answers, null, 1)) + '</pre>'}</td>
-          <td><button data-ok="${r.user_id}" data-name="${esc(p.full_name || '')}">אשר</button>
-          <button class="ghost" data-no="${r.user_id}" data-name="${esc(p.full_name || '')}">דחה</button></td></tr>`;
-      }).join('') + '</table>';
+    $('ownerList').innerHTML = answers.map(r => {
+      const p = byId[r.user_id] || {};
+      const name = p.full_name || (r.answers && r.answers.name) || '';
+      return `<div class="card">
+          ${renderSummary(r.answers || {}, name)}
+          <div class="muted">הוגש: ${new Date(r.submitted_at).toLocaleString('he-IL')}</div>
+          <div style="margin-top:10px">
+            <button data-ok="${r.user_id}" data-name="${esc(name)}">אשר</button>
+            <button class="ghost" data-no="${r.user_id}" data-name="${esc(name)}">דחה</button>
+          </div>
+        </div>`;
+    }).join('');
     document.querySelectorAll('[data-ok],[data-no]').forEach(b => b.addEventListener('click', () => decide(b)));
   }
 
@@ -212,8 +311,6 @@
     $('ownerMsg').textContent = error ? 'שגיאה: ' + error.message : 'בוצע ניקוי.';
     await loadOwner();
   });
-
-  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   route();
 })();
