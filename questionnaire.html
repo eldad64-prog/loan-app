@@ -457,17 +457,22 @@
 
     const name = document.getElementById('name').value.trim();
     document.getElementById('results').innerHTML =
-      (name ? `<p class="small">ชื่อ: ${name}</p>` : '') +
+      (name ? `<p class="small">ชื่อ: ${name.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))}</p>` : '') +
       `<div class="score" style="background:${bandColor}"><div class="num">${score}</div><div class="lbl">${band}: ${bandText}</div></div>` +
       out.join('');
 
-    // ส่งคำตอบไปยังหน้าหลักเพื่อบันทึก (ทำงานเฉพาะเมื่ออยู่ใน iframe)
-    try { window.parent.postMessage({ type: 'loan-answers', answers: a, name: name, score: score }, '*'); } catch (e) {}
+    // ส่งคำตอบและสรุปไปยังหน้าหลักเพื่อบันทึก (ทำงานเฉพาะเมื่ออยู่ใน iframe)
+    const summaryHtml = document.getElementById('results').innerHTML;
+    try { window.parent.postMessage({ type: 'loan-answers', answers: a, name: name, score: score, summaryHtml: summaryHtml }, '*'); } catch (e) {}
 
     // ผู้ใช้เห็นเฉพาะข้อความขอบคุณ ไม่เห็นสรุปภายใน
+    const sum = document.getElementById('summary');
+    sum.querySelector('h2').textContent = 'ขอบคุณ';
+    sum.querySelector('.sub').style.display = 'none';
+    sum.querySelector('.nav').style.display = 'none';
     document.getElementById('results').innerHTML = '<p>ขอบคุณสำหรับการตอบ เจ้าหน้าที่จะติดต่อกลับโดยเร็ว</p>';
     steps.forEach(s => s.classList.remove('active'));
-    document.getElementById('summary').classList.add('active');
+    sum.classList.add('active');
     bar.style.width = '100%';
     plabel.textContent = 'สรุป';
     window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -21,6 +21,12 @@
   table { width:100%; border-collapse:collapse; font-size:14px; }
   td, th { border-bottom:1px solid var(--line); padding:8px 6px; text-align:right; vertical-align:top; }
   .hidden { display:none !important; }
+  .res { border-right:6px solid var(--line); padding:8px 10px; border-radius:8px; border:1px solid var(--line); margin:6px 0; font-size:14px; }
+  .res.green { border-right-color:var(--green); } .res.amber { border-right-color:#c98a13; } .res.red { border-right-color:var(--red); }
+  .res .tag { font-weight:700; }
+  .res .ask { color:var(--muted); font-style:italic; }
+  .score { color:#fff; padding:8px; border-radius:8px; margin:6px 0; text-align:center; }
+  .small { color:var(--muted); font-size:13px; }
 </style>
 </head>
 <body>
@@ -34,10 +40,9 @@
   <p class="muted">הירשם כדי לקבל 14 ימי ניסיון למילוי השאלון.</p>
   <label>אימייל<input type="email" id="email" autocomplete="email"></label>
   <label>סיסמה (לפחות 8 תווים)<input type="password" id="password" autocomplete="current-password"></label>
-  <label id="nameWrap" class="hidden">שם מלא<input type="text" id="fullName"></label>
+  <label>שם מלא<input type="text" id="fullName"></label>
   <div id="authMsg" class="err"></div>
-  <button id="loginBtn">כניסה</button>
-  <button id="signupBtn" class="ghost">הרשמה</button>
+  <button id="signupBtn">הרשמה</button>
 </section>
 
 <!-- לקוח: שאלון -->
@@ -113,23 +118,27 @@
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: ev.data.answers });
+    const payload = { ...ev.data.answers, summaryHtml: ev.data.summaryHtml || '' };
+    const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
     if (error) { alert('השמירה נכשלה. נסה שוב או פנה לנציג.'); return; }
   });
 
+  // הרשמה בלבד: אחרי הרשמה מתחילה תקופת הניסיון והשאלון נפתח מיד.
+  // מי שכבר נרשם בעבר נכנס אוטומטית עם אותם פרטים.
   $('signupBtn').addEventListener('click', async () => {
-    if (mode !== 'signup') { mode = 'signup'; $('nameWrap').classList.remove('hidden'); $('signupBtn').textContent = 'אישור הרשמה'; return; }
-    const email = $('email').value.trim(), password = $('password').value;
-    const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: $('fullName').value.trim() } } });
-    $('authMsg').textContent = error ? error.message : 'נרשמת. אפשר להתחבר.';
-    if (!error) { mode = 'login'; $('nameWrap').classList.add('hidden'); }
-  });
-
-  $('loginBtn').addEventListener('click', async () => {
-    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
-    if (error) { $('authMsg').textContent = 'הכניסה נכשלה: ' + error.message; return; }
+    const email = $('email').value.trim(), password = $('password').value, name = $('fullName').value.trim();
+    if (!email || password.length < 8 || !name) { $('authMsg').textContent = 'נא למלא שם, מייל וסיסמה (לפחות 8 תווים).'; return; }
     $('authMsg').textContent = '';
-    await route();
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error && /already/i.test(error.message)) {
+      const r = await sb.auth.signInWithPassword({ email, password });
+      if (r.error) { $('authMsg').textContent = 'המייל כבר קיים עם סיסמה אחרת. פנה לנציג.'; return; }
+      await route();
+      return;
+    }
+    if (error) { $('authMsg').textContent = error.message; return; }
+    if (data.session) { await route(); return; }
+    $('authMsg').textContent = 'נשלח אליך מייל לאישור. אחרי האישור חזור לכאן והירשם שוב.';
   });
 
   $('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
@@ -146,7 +155,7 @@
       answers.map(r => {
         const p = byId[r.user_id] || {};
         return `<tr><td>${esc(p.full_name || '—')}</td><td>${new Date(r.submitted_at).toLocaleString('he-IL')}</td>
-          <td><pre style="white-space:pre-wrap;font-size:12px">${esc(JSON.stringify(r.answers, null, 1))}</pre></td>
+          <td>${r.answers && r.answers.summaryHtml ? r.answers.summaryHtml : '<pre style="white-space:pre-wrap;font-size:12px">' + esc(JSON.stringify(r.answers, null, 1)) + '</pre>'}</td>
           <td><button data-ok="${r.user_id}" data-name="${esc(p.full_name || '')}">אשר</button>
           <button class="ghost" data-no="${r.user_id}" data-name="${esc(p.full_name || '')}">דחה</button></td></tr>`;
       }).join('') + '</table>';
