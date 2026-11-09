@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="th" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบประเมินผู้ขอสินเชื่อ</title>
+<style>
+  :root { --bg:#f3f6fb; --card:#ffffff; --fg:#1c2433; --muted:#667085; --line:#e1e6f0; --accent:#3b6fd8; --accent2:#7aa6f5; --sel:#e8f0fd; --green:#2e8b57; --amber:#c98a13; --red:#c0392b; --shadow:0 6px 20px rgba(20,40,80,.08); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1420; --card:#18202f; --fg:#e8ecf4; --muted:#98a2b3; --line:#2a3446; --accent:#7aa6f5; --accent2:#5b8be0; --sel:#22304d; --shadow:none; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1420; --card:#18202f; --fg:#e8ecf4; --muted:#98a2b3; --line:#2a3446; --accent:#7aa6f5; --accent2:#5b8be0; --sel:#22304d; --shadow:none; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family: system-ui, "Leelawadee UI", "Tahoma", sans-serif; margin:0; padding:20px 14px 40px; line-height:1.75; font-size:17px; }
+  main { max-width:600px; margin:0 auto; }
+  .hero { background: linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff; border-radius:18px; padding:22px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .hero h1 { font-size:22px; margin:0 0 6px; }
+  .hero p { margin:0; opacity:.95; font-size:15px; }
+  .progress-wrap { margin:14px 0 0; }
+  .progress-label { font-size:13px; opacity:.9; margin-bottom:6px; }
+  .bar { height:8px; background:rgba(255,255,255,.35); border-radius:6px; overflow:hidden; }
+  .bar > div { height:100%; background:#fff; width:0; transition: width .35s ease; border-radius:6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .card h2 { font-size:19px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:15px; margin:0 0 14px; }
+  .q { font-size:17px; font-weight:600; margin:18px 0 10px; }
+  .choices { display:grid; grid-template-columns:1fr; gap:10px; }
+  .choices.two { grid-template-columns:1fr 1fr; }
+  .choice { background:var(--card); color:var(--fg); border:2px solid var(--line); border-radius:14px; padding:18px 14px; font-size:17px; cursor:pointer; text-align:center; font-family:inherit; transition: all .15s ease; }
+  .choice:hover { border-color:var(--accent2); transform: translateY(-1px); }
+  .choice.on { border-color:var(--accent); background:var(--sel); font-weight:700; box-shadow: 0 0 0 3px var(--sel); }
+  .choice:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .nav { display:flex; justify-content:space-between; gap:10px; margin-top:22px; }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:14px; padding:14px 24px; font-size:17px; cursor:pointer; font-family:inherit; font-weight:600; }
+  .btn.ghost { background:transparent; color:var(--accent); border:2px solid var(--accent); }
+  .btn:hover { filter:brightness(1.05); }
+  .step { display:none; border-top:6px solid var(--accent); }
+  .step.active { display:block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .step::before { content: attr(data-icon); display:block; font-size:34px; text-align:center; margin-bottom:4px; }
+  .step h2, .step .sub { text-align:center; }
+  .step[data-step="2"] { border-top-color:#2e8b57; }
+  .step[data-step="3"] { border-top-color:#c98a13; }
+  .step[data-step="4"] { border-top-color:#8e44ad; }
+  .step[data-step="5"] { border-top-color:#d35400; }
+  .step[data-step="6"] { border-top-color:#16a085; }
+  .step[data-step="7"] { border-top-color:#2c3e50; }
+  #summary { border-top-color:var(--accent); }
+  input[type=text] { width:100%; padding:13px; border:2px solid var(--line); border-radius:12px; background:transparent; color:var(--fg); font-size:17px; font-family:inherit; }
+  .score { text-align:center; padding:18px; border-radius:16px; margin-bottom:14px; color:#fff; }
+  .score .num { font-size:44px; font-weight:800; line-height:1; }
+  .score .lbl { font-size:15px; opacity:.95; margin-top:6px; }
+  .res { border-left:6px solid var(--line); padding:14px 16px; border-radius:12px; background:var(--card); border:1px solid var(--line); margin:10px 0; }
+  .res.green { border-left-color:var(--green); }
+  .res.amber { border-left-color:var(--amber); }
+  .res.red { border-left-color:var(--red); }
+  .tag { font-weight:700; margin-bottom:2px; }
+  .green .tag { color:var(--green); } .amber .tag { color:var(--amber); } .red .tag { color:var(--red); }
+  .ask { font-style:italic; color:var(--muted); margin-top:6px; font-size:15px; }
+  .small { font-size:14px; color:var(--muted); }
+  #cheerModal, #skipPrompt { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; padding:20px; z-index:30; }
+  #cheerModal.show, #skipPrompt.show { display:flex; }
+  #cheerModal .box, #skipPrompt .box { background:var(--card); color:var(--fg); border-radius:16px; padding:24px; max-width:380px; width:100%; text-align:center; box-shadow:var(--shadow); }
+  #cheerModal .box p, #skipPrompt .box p { margin:0 0 16px; font-size:18px; font-weight:600; }
+  .mrow { display:flex; gap:10px; justify-content:center; }
+  @media print { .btn, .nav, .progress-wrap, #cheerModal, #skipPrompt { display:none !important; } body { background:#fff; color:#000; } .card, .hero { box-shadow:none; border:none; } .hero { background:#eee; color:#000; } }
+</style>
+</head>
+<body>
+<main>
+
+<div id="cheerModal"><div class="box">
+  <p class="cheerText"></p>
+  <div class="mrow"><button class="btn" id="cheerOk">ไปต่อ</button></div>
+</div></div>
+
+<div id="skipPrompt"><div class="box">
+  <p>คุณข้ามคำถามไปหนึ่งข้อ อยากตอบตอนนี้ หรือจะกลับมาทีหลัง?</p>
+  <div class="mrow">
+    <button class="btn skipNow">ตอบตอนนี้</button>
+    <button class="btn ghost skipLater">ทีหลัง</button>
+  </div>
+</div></div>
+
+<div class="hero">
+  <h1>มาทำความรู้จักคำขอของคุณ</h1>
+  <p>แบบสอบถามสั้นๆ คุณตอบได้ตามจังหวะของคุณ และข้ามคำถามที่ไม่สะดวกได้ เป้าหมายคือวางแผนสินเชื่อที่เหมาะกับคุณ</p>
+  <div class="progress-wrap">
+    <div class="progress-label" id="plabel">ขั้นที่ 1 จาก 7</div>
+    <div class="bar"><div id="progress"></div></div>
+  </div>
+</div>
+
+<!-- 1 -->
+<section class="card step active" data-step="1" data-icon="🔐">
+  <h2>1. การยินยอมและข้อมูลเบื้องต้น</h2>
+  <p class="sub">เราจะใช้ข้อมูลและเอกสารของคุณเพื่อพิจารณาคำขอเท่านั้น</p>
+  <p class="q">คุณยินยอมให้ใช้ข้อมูลเหล่านี้หรือไม่?</p>
+  <div class="choices two" data-group="consent">
+    <button class="choice" data-v="yes">ยินยอม</button>
+    <button class="choice" data-v="no">ไม่ยินยอม</button>
+  </div>
+  <p class="q">ชื่อของคุณ (ไม่บังคับ)</p>
+  <input type="text" id="name">
+  <div class="nav"><span></span><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 2 -->
+<section class="card step" data-step="2" data-icon="💼">
+  <h2>2. งานของคุณ</h2>
+  <p class="sub">เริ่มจากแหล่งรายได้หลักของคุณ</p>
+  <p class="q">รายได้หลักของคุณมาจากไหน?</p>
+  <div class="choices" data-group="source">
+    <button class="choice" data-v="salary">เงินเดือนจากงาน</button>
+    <button class="choice" data-v="self">ธุรกิจของฉัน</button>
+    <button class="choice" data-v="other">อื่นๆ</button>
+  </div>
+  <p class="q">คุณทำงานที่นี่มานานแค่ไหน?</p>
+  <div class="choices" data-group="tenure">
+    <button class="choice" data-v="0">ไม่เกิน 6 เดือน</button>
+    <button class="choice" data-v="1">6 เดือนถึง 2 ปี</button>
+    <button class="choice" data-v="2">2 ถึง 5 ปี</button>
+    <button class="choice" data-v="3">มากกว่า 5 ปี</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 3 -->
+<section class="card step" data-step="3" data-icon="💰">
+  <h2>3. สถานะการเงิน</h2>
+  <p class="sub">เลือกช่วงโดยประมาณ ไม่ต้องใช้ตัวเลขที่แน่นอน</p>
+  <p class="q">โดยประมาณ เงินเข้าบัญชีของคุณเดือนละเท่าไร?</p>
+  <div class="choices" data-group="income">
+    <button class="choice" data-v="0">ไม่เกิน 10,000 บาท</button>
+    <button class="choice" data-v="1">10,000–20,000</button>
+    <button class="choice" data-v="2">20,000–35,000</button>
+    <button class="choice" data-v="3">35,000–50,000</button>
+    <button class="choice" data-v="4">มากกว่า 50,000</button>
+  </div>
+  <p class="q">คุณจ่ายค่างวดหนี้ประมาณเท่าไรต่อเดือน?</p>
+  <div class="choices" data-group="obligations">
+    <button class="choice" data-v="0">ไม่มี</button>
+    <button class="choice" data-v="1">ไม่เกิน 5,000</button>
+    <button class="choice" data-v="2">5,000–10,000</button>
+    <button class="choice" data-v="3">10,000–20,000</button>
+    <button class="choice" data-v="4">มากกว่า 20,000</button>
+  </div>
+  <p class="q">รวมแล้ว คุณมีหนี้คงค้างเท่าไร?</p>
+  <div class="choices" data-group="debts">
+    <button class="choice" data-v="0">ไม่มี</button>
+    <button class="choice" data-v="1">ไม่เกิน 50,000</button>
+    <button class="choice" data-v="2">50,000–150,000</button>
+    <button class="choice" data-v="3">150,000–300,000</button>
+    <button class="choice" data-v="4">มากกว่า 300,000</button>
+  </div>
+  <p class="q">ในช่วงครึ่งปีที่ผ่านมา มีการชำระล่าช้าหรือไม่?</p>
+  <div class="choices two" data-group="late">
+    <button class="choice" data-v="no">ไม่มี</button>
+    <button class="choice" data-v="yes">มี</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 4 -->
+<section class="card step" data-step="4" data-icon="🧭">
+  <h2>4. ถ้าเกิดกรณีนี้…</h2>
+  <p class="sub">ไม่มีคำตอบถูกหรือผิด เราอยากเข้าใจวิธีรับมือของคุณ</p>
+  <p class="q">รายได้รายเดือนของคุณลดลง 30% เดือนหน้า คุณจะทำอย่างไร?</p>
+  <div class="choices" data-group="scen1">
+    <button class="choice" data-v="0">มีเงินออมหรือรายได้เสริม</button>
+    <button class="choice" data-v="1">จะลดค่าใช้จ่ายอื่น</button>
+    <button class="choice" data-v="2">จะขอเงินจากบุคคลอื่น</button>
+    <button class="choice" data-v="3">ยังไม่แน่ใจ</button>
+  </div>
+  <p class="q">คุณมีค่าใช้จ่ายฉุกเฉิน 10,000 บาท จะจ่ายอย่างไร?</p>
+  <div class="choices" data-group="scen2">
+    <button class="choice" data-v="0">จากเงินออมของฉัน</button>
+    <button class="choice" data-v="1">แบ่งจ่ายจากรายได้รายเดือน</button>
+    <button class="choice" data-v="2">ขอสินเชื่อเพิ่ม</button>
+    <button class="choice" data-v="3">ยังไม่แน่ใจ</button>
+  </div>
+  <p class="q">เดือนหนึ่งคุณจ่ายค่างวดไม่ได้ จะทำอย่างไร?</p>
+  <div class="choices" data-group="scen3">
+    <button class="choice" data-v="0">แจ้งล่วงหน้าและหาทางออกร่วมกัน</button>
+    <button class="choice" data-v="1">ขอเลื่อนชำระระยะสั้น</button>
+    <button class="choice" data-v="2">ปล่อยไว้แล้วรอให้ผ่านไป</button>
+    <button class="choice" data-v="3">ยังไม่แน่ใจ</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 5 -->
+<section class="card step" data-step="5" data-icon="🔄">
+  <h2>5. ตรวจสอบเพิ่มเติม</h2>
+  <p class="q">เดือนที่ผ่านมา เงินเข้าบัญชีประมาณเท่าไร?</p>
+  <div class="choices" data-group="income2">
+    <button class="choice" data-v="0">ไม่เกิน 10,000 บาท</button>
+    <button class="choice" data-v="1">10,000–20,000</button>
+    <button class="choice" data-v="2">20,000–35,000</button>
+    <button class="choice" data-v="3">35,000–50,000</button>
+    <button class="choice" data-v="4">มากกว่า 50,000</button>
+  </div>
+  <p class="q">คุณจ่ายค่างวดหนี้ประมาณเท่าไรต่อเดือน?</p>
+  <div class="choices" data-group="obligations2">
+    <button class="choice" data-v="0">ไม่มี</button>
+    <button class="choice" data-v="1">ไม่เกิน 5,000</button>
+    <button class="choice" data-v="2">5,000–10,000</button>
+    <button class="choice" data-v="3">10,000–20,000</button>
+    <button class="choice" data-v="4">มากกว่า 20,000</button>
+  </div>
+  <p class="q">รวมแล้ว คุณมีหนี้คงค้างเท่าไร?</p>
+  <div class="choices" data-group="debts2">
+    <button class="choice" data-v="0">ไม่มี</button>
+    <button class="choice" data-v="1">ไม่เกิน 50,000</button>
+    <button class="choice" data-v="2">50,000–150,000</button>
+    <button class="choice" data-v="3">150,000–300,000</button>
+    <button class="choice" data-v="4">มากกว่า 300,000</button>
+  </div>
+  <p class="q">คุณทำงานที่นี่มานานแค่ไหน?</p>
+  <div class="choices" data-group="tenure2">
+    <button class="choice" data-v="0">ไม่เกิน 6 เดือน</button>
+    <button class="choice" data-v="1">6 เดือนถึง 2 ปี</button>
+    <button class="choice" data-v="2">2 ถึง 5 ปี</button>
+    <button class="choice" data-v="3">มากกว่า 5 ปี</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 6 -->
+<section class="card step" data-step="6" data-icon="🏠">
+  <h2>6. รายละเอียดเพิ่มเติม</h2>
+  <p class="sub">คำถามสั้นๆ เพื่อช่วยวางแผนการชำระและการพูดคุย</p>
+  <p class="q">ตอนนี้คุณอาศัยอยู่ที่ไหน?</p>
+  <div class="choices" data-group="housing">
+    <button class="choice" data-v="own">บ้านของฉัน</button>
+    <button class="choice" data-v="rent">เช่าห้อง</button>
+    <button class="choice" data-v="family">อยู่กับครอบครัว</button>
+  </div>
+  <p class="q">มีกี่คนที่คุณต้องดูแลทางการเงิน?</p>
+  <div class="choices" data-group="dependents">
+    <button class="choice" data-v="0">ไม่มี</button>
+    <button class="choice" data-v="1">1 คน</button>
+    <button class="choice" data-v="2">2 คน</button>
+    <button class="choice" data-v="3">3 คนขึ้นไป</button>
+  </div>
+  <p class="q">สะดวกให้ติดต่อคุณทางไหน?</p>
+  <div class="choices" data-group="contact">
+    <button class="choice" data-v="phone">โทรศัพท์</button>
+    <button class="choice" data-v="whatsapp">WhatsApp</button>
+    <button class="choice" data-v="email">อีเมล</button>
+  </div>
+  <p class="q">ช่วงเวลาไหนสะดวกสำหรับคุณ?</p>
+  <div class="choices" data-group="time">
+    <button class="choice" data-v="morning">ตอนเช้า</button>
+    <button class="choice" data-v="noon">ตอนเที่ยง</button>
+    <button class="choice" data-v="evening">ตอนเย็น</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" data-next>ถัดไป</button></div>
+</section>
+
+<!-- 7 -->
+<section class="card step" data-step="7" data-icon="📎">
+  <h2>7. เอกสาร</h2>
+  <p class="sub">เลือกได้หลายรายการ ไม่กระทบคะแนน ช่วยให้เรารู้ว่าต้องเตรียมอะไร</p>
+  <div class="choices" data-group="docs" data-multi="1">
+    <button class="choice" data-v="id">บัตรประชาชนหรือหนังสือเดินทาง</button>
+    <button class="choice" data-v="salary">สลิปเงินเดือน</button>
+    <button class="choice" data-v="bank">สเตทเมนต์บัญชีธนาคาร</button>
+    <button class="choice" data-v="self">ทะเบียนธุรกิจและเอกสารภาษี</button>
+    <button class="choice" data-v="guarantor">ผู้ค้ำประกันหรือหลักประกัน</button>
+  </div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" id="finish">ไปที่สรุป</button></div>
+</section>
+
+<!-- สรุป -->
+<section class="card step" id="summary" data-icon="✅">
+  <h2>สรุปเพื่อให้เจ้าหน้าที่ตรวจสอบ</h2>
+  <p class="sub">สรุปนี้ช่วยให้เข้าใจภาพรวม การตัดสินใจจะทำหลังเจ้าหน้าที่ตรวจสอบเอกสารแล้ว</p>
+  <div id="results"></div>
+  <div class="nav"><button class="btn ghost" data-prev>ย้อนกลับ</button><button class="btn" onclick="window.print()">พิมพ์</button></div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  const steps = [...document.querySelectorAll('.step')];
+  const total = steps.length;
+  const bar = document.getElementById('progress');
+  const plabel = document.getElementById('plabel');
+  const answers = {};
+  let cur = 0;
+
+  function show(i) {
+    steps.forEach((s, k) => s.classList.toggle('active', k === i));
+    cur = i;
+    bar.style.width = (i / (total - 1)) * 100 + '%';
+    plabel.textContent = i === total - 1 ? 'สรุป' : `ขั้นที่ ${i + 1} จาก ${total - 1}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('[data-group]').forEach(group => {
+    const key = group.dataset.group;
+    const multi = group.dataset.multi === '1';
+    group.querySelectorAll('.choice').forEach(btn => btn.addEventListener('click', () => {
+      if (multi) {
+        btn.classList.toggle('on');
+        answers[key] = [...group.querySelectorAll('.choice.on')].map(b => b.dataset.v);
+      } else {
+        group.querySelectorAll('.choice').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        answers[key] = btn.dataset.v;
+        // ถ้าตอบครบทุกคำถามในขั้นนี้ ไปขั้นถัดไปเองหลังเวลาสั้นๆ (ไม่ต้องกดปุ่ม)
+        const stepEl = group.closest('.step');
+        if (stepEl && stepEl.classList.contains('active') && stepEl.dataset.step !== '1' && unanswered(stepEl).length === 0) {
+          setTimeout(() => {
+            if (stepEl.classList.contains('active') && unanswered(stepEl).length === 0) goNext();
+          }, 350);
+        }
+      }
+    }));
+  });
+
+  const CHEERS = ['เริ่มได้ดีมาก 🙌', 'ยอดเยี่ยม เสร็จไปหนึ่งในสี่แล้ว', 'ดีมาก ไปต่อได้เลย', 'เกือบครึ่งทางแล้ว คุณทำได้ดี', 'เหลืออีกไม่มาก 👏', 'ดีมาก เหลือไม่มากแล้ว', 'เกือบเสร็จแล้ว ขั้นสุดท้ายก่อนสรุป'];
+  function cheer(msg) {
+    const m = document.getElementById('cheerModal');
+    m.querySelector('.cheerText').textContent = msg;
+    m.classList.add('show');
+  }
+  document.getElementById('cheerOk').addEventListener('click', () => {
+    document.getElementById('cheerModal').classList.remove('show');
+  });
+
+  function unanswered(stepEl) {
+    return [...stepEl.querySelectorAll('[data-group]')]
+      .filter(g => g.dataset.group !== 'docs')
+      .filter(g => !g.querySelector('.choice.on'));
+  }
+
+  function goNext() {
+    show(cur + 1);
+    if (cur > 0 && cur < total - 1) cheer(CHEERS[Math.min(cur - 1, CHEERS.length - 1)]);
+  }
+
+  document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => {
+    if (cur === 0 && answers.consent !== 'yes') {
+      alert('ต้องยินยอมก่อนจึงจะดำเนินการต่อได้');
+      return;
+    }
+    if (cur > 0 && unanswered(steps[cur]).length) {
+      const p = document.getElementById('skipPrompt');
+      p.classList.add('show');
+      p.querySelector('.skipNow').onclick = () => p.classList.remove('show');
+      p.querySelector('.skipLater').onclick = () => { p.classList.remove('show'); goNext(); };
+      return;
+    }
+    goNext();
+  }));
+  document.querySelectorAll('[data-prev]').forEach(b => b.addEventListener('click', () => show(cur - 1)));
+
+  const L = {
+    income: ['ไม่เกิน 10,000', '10,000–20,000', '20,000–35,000', '35,000–50,000', 'มากกว่า 50,000'],
+    debts: ['ไม่มี', 'ไม่เกิน 50,000', '50,000–150,000', '150,000–300,000', 'มากกว่า 300,000'],
+    obligations: ['ไม่มี', 'ไม่เกิน 5,000', '5,000–10,000', '10,000–20,000', 'มากกว่า 20,000'],
+    tenure: ['ไม่เกิน 6 เดือน', '6 เดือนถึง 2 ปี', '2–5 ปี', 'มากกว่า 5 ปี'],
+    housing: { own: 'บ้านของฉัน', rent: 'เช่าห้อง', family: 'อยู่กับครอบครัว' },
+    dependents: ['ไม่มี', '1 คน', '2 คน', '3 คนขึ้นไป'],
+    contact: { phone: 'โทรศัพท์', whatsapp: 'WhatsApp', email: 'อีเมล' },
+    time: { morning: 'ตอนเช้า', noon: 'ตอนเที่ยง', evening: 'ตอนเย็น' }
+  };
+
+  function card(color, title, text, ask) {
+    return `<div class="res ${color}"><div class="tag">${title}</div><div>${text}</div>${ask ? `<div class="ask">${ask}</div>` : ''}</div>`;
+  }
+
+  function pair(k1, k2, name, labels, question) {
+    if (answers[k1] === undefined || answers[k2] === undefined) return null;
+    const d = Math.abs(+answers[k1] - +answers[k2]);
+    return {
+      ok: d < 2,
+      html: d >= 2
+        ? card('red', `${name}: ไม่สอดคล้องกัน`, `ในคำถามแรกเลือก "${labels[+answers[k1]]}" และในคำถามที่สองเลือก "${labels[+answers[k2]]}"`, question)
+        : card('green', `${name}: สอดคล้องกัน`, 'คำตอบสอดคล้องกัน')
+    };
+  }
+
+  document.getElementById('finish').addEventListener('click', () => {
+    const a = answers;
+    let score = 100;
+    const out = [];
+    const docsNeeded = [];
+
+    const pairs = [
+      pair('income', 'income2', 'รายได้', L.income, 'คำถามสำหรับการพูดคุย: "ช่วยดูเงินเข้าบัญชีในสามเดือนที่ผ่านมาด้วยกันได้ไหม?"'),
+      pair('debts', 'debts2', 'หนี้คงค้าง', L.debts, 'คำถามสำหรับการพูดคุย: "ช่วยไล่ดูภาระหนี้ทั้งหมดด้วยกันได้ไหม?"'),
+      pair('obligations', 'obligations2', 'ค่างวดรายเดือน', L.obligations, 'คำถามสำหรับการพูดคุย: "ช่วยดูค่างวดรายเดือนของคุณด้วยกันได้ไหม?"'),
+      pair('tenure', 'tenure2', 'ระยะเวลาทำงาน', L.tenure, 'คำถามสำหรับการพูดคุย: "ตอนนี้คุณทำงานที่นี่มาประมาณกี่ปีแล้ว?"')
+    ].filter(Boolean);
+    pairs.forEach(p => { out.push(p.html); if (!p.ok) score -= 10; });
+
+    if (a.income !== undefined && a.obligations !== undefined) {
+      const inc = +a.income, ob = +a.obligations;
+      if (ob >= 3 && inc <= 1) { out.push(card('red', 'ภาระผ่อนสูง', 'ค่างวดสูงเมื่อเทียบกับรายได้')); score -= 15; }
+      else if (ob >= 3) { out.push(card('amber', 'ภาระผ่อนปานกลาง', 'ค่างวดค่อนข้างสูงเมื่อเทียบกับรายได้')); score -= 5; }
+      else out.push(card('green', 'ภาระผ่อนเหมาะสม', 'ค่างวดเหมาะสมเมื่อเทียบกับรายได้'));
+    }
+
+    if (a.late === 'yes') { out.push(card('amber', 'การชำระล่าช้า', 'มีการชำระล่าช้าในครึ่งปีที่ผ่านมา', 'คำถามสำหรับการพูดคุย: "ช่วงเวลานั้นเกิดอะไรขึ้น และตอนนี้เปลี่ยนไปอย่างไร?"')); score -= 10; }
+
+    const scen = [
+      { k: 'scen1', name: 'รายได้ลดลง' },
+      { k: 'scen2', name: 'ค่าใช้จ่ายฉุกเฉิน' },
+      { k: 'scen3', name: 'ชำระค่างวดไม่ได้' }
+    ];
+    const riskLabel = ['แผนดี', 'แผนบางส่วน', 'แผนอ่อน', 'ยังไม่มีแผนชัดเจน'];
+    const riskAsk = {
+      scen1: 'คำถามสำหรับการพูดคุย: "คุณมีเงินออมหรือรายได้เสริมอะไรบ้าง?"',
+      scen2: 'คำถามสำหรับการพูดคุย: "ถ้าไม่กู้เพิ่ม จะจัดการค่าใช้จ่ายแบบนี้อย่างไร?"',
+      scen3: 'คำถามสำหรับการพูดคุย: "ถ้าจ่ายไม่ได้ขึ้นมา ขั้นแรกที่คุณจะทำคืออะไร?"'
+    };
+    scen.forEach(s => {
+      if (a[s.k] === undefined) return;
+      const r = +a[s.k];
+      score -= r * 4;
+      const color = r <= 1 ? 'green' : r === 2 ? 'amber' : 'red';
+      out.push(card(color, s.name + ': ' + riskLabel[r], '', riskAsk[s.k]));
+    });
+
+    const have = new Set(a.docs || []);
+    const want = {
+      id: 'บัตรประชาชนหรือหนังสือเดินทางที่ยังไม่หมดอายุ',
+      salary: 'สลิปเงินเดือนของสามเดือนล่าสุด',
+      bank: 'สเตทเมนต์บัญชีธนาคารของสามเดือนล่าสุด',
+      self: 'ทะเบียนธุรกิจและรายงานภาษีล่าสุด',
+      guarantor: 'บัตรประชาชนและเอกสารรายได้ของผู้ค้ำ'
+    };
+    if (!have.has('id')) { docsNeeded.push(want.id); score -= 10; }
+    if (a.source === 'salary') { if (!have.has('salary')) { docsNeeded.push(want.salary); score -= 5; } if (!have.has('bank')) { docsNeeded.push(want.bank); score -= 5; } }
+    if (a.source === 'self') { if (!have.has('self')) { docsNeeded.push(want.self); score -= 5; } docsNeeded.push('สเตทเมนต์บัญชีธุรกิจของสามเดือนล่าสุด'); }
+    if (a.source === 'other') docsNeeded.push('เอกสารที่แสดงรายได้');
+    if (have.has('guarantor')) docsNeeded.push(want.guarantor);
+    const uniq = [...new Set(docsNeeded)];
+    if (uniq.length) out.push(card('amber', 'เอกสารที่ควรขอ', '<ul>' + uniq.map(d => '<li>' + d + '</li>').join('') + '</ul>'));
+
+    const lines = [];
+    if (a.housing) lines.push('ที่พัก: ' + L.housing[a.housing]);
+    if (a.dependents !== undefined) lines.push('ผู้อยู่ในความดูแล: ' + L.dependents[+a.dependents]);
+    if (a.contact) lines.push('ช่องทางติดต่อ: ' + L.contact[a.contact]);
+    if (a.time) lines.push('เวลาที่สะดวก: ' + L.time[a.time]);
+    if (lines.length) out.push(card('green', 'รายละเอียดเพิ่มเติม', lines.join('<br>')));
+
+    score = Math.max(0, Math.min(100, score));
+    let band, bandColor, bandText;
+    if (score >= 75) { band = 'เขียว'; bandColor = '#2e8b57'; bandText = 'ดำเนินการตามปกติ: ตรวจสอบเอกสารและพูดคุยเรื่องคำตอบ'; }
+    else if (score >= 50) { band = 'ส้ม'; bandColor = '#c98a13'; bandText = 'ตรวจสอบโดยละเอียด: ตรวจทุกเอกสารและถามคำถามสำหรับการพูดคุย'; }
+    else { band = 'แดง'; bandColor = '#c0392b'; bandText = 'ตรวจสอบอย่างเข้มงวด: ควรคุยกับลูกค้าก่อนดำเนินการต่อ'; }
+
+    const name = document.getElementById('name').value.trim();
+    document.getElementById('results').innerHTML =
+      (name ? `<p class="small">ชื่อ: ${name}</p>` : '') +
+      `<div class="score" style="background:${bandColor}"><div class="num">${score}</div><div class="lbl">${band}: ${bandText}</div></div>` +
+      out.join('');
+
+    // ส่งคำตอบไปยังหน้าหลักเพื่อบันทึก (ทำงานเฉพาะเมื่ออยู่ใน iframe)
+    try { window.parent.postMessage({ type: 'loan-answers', answers: a, name: name, score: score }, '*'); } catch (e) {}
+
+    // ผู้ใช้เห็นเฉพาะข้อความขอบคุณ ไม่เห็นสรุปภายใน
+    document.getElementById('results').innerHTML = '<p>ขอบคุณสำหรับการตอบ เจ้าหน้าที่จะติดต่อกลับโดยเร็ว</p>';
+    steps.forEach(s => s.classList.remove('active'));
+    document.getElementById('summary').classList.add('active');
+    bar.style.width = '100%';
+    plabel.textContent = 'สรุป';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>

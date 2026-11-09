@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בקשת הלוואה</title>
+<style>
+  :root { --bg:#f3f6fb; --card:#fff; --fg:#1c2433; --muted:#667085; --line:#e1e6f0; --accent:#3b6fd8; --red:#c0392b; --green:#2e8b57; }
+  body { background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; margin:0; padding:16px; line-height:1.6; font-size:16px; }
+  main { max-width:620px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  h1 { font-size:20px; margin:0 0 6px; }
+  h2 { font-size:17px; margin:0 0 8px; }
+  input { width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font-size:16px; box-sizing:border-box; margin:6px 0 10px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:12px 18px; font-size:16px; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .muted { color:var(--muted); font-size:14px; }
+  .err { color:var(--red); }
+  .ok { color:var(--green); }
+  iframe { width:100%; height:80vh; border:0; border-radius:12px; background:#fff; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td, th { border-bottom:1px solid var(--line); padding:8px 6px; text-align:right; vertical-align:top; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+
+<div id="status" class="muted">טוען...</div>
+
+<!-- כניסה / הרשמה -->
+<section id="authView" class="card hidden">
+  <h1>בקשת הלוואה</h1>
+  <p class="muted">הירשם כדי לקבל 14 ימי ניסיון למילוי השאלון.</p>
+  <label>אימייל<input type="email" id="email" autocomplete="email"></label>
+  <label>סיסמה (לפחות 8 תווים)<input type="password" id="password" autocomplete="current-password"></label>
+  <label id="nameWrap" class="hidden">שם מלא<input type="text" id="fullName"></label>
+  <div id="authMsg" class="err"></div>
+  <button id="loginBtn">כניסה</button>
+  <button id="signupBtn" class="ghost">הרשמה</button>
+</section>
+
+<!-- לקוח: שאלון -->
+<section id="learnerView" class="hidden">
+  <div class="card">
+    <h2 id="trialText"></h2>
+    <div class="muted" id="trialNote"></div>
+    <button id="logoutBtn" class="ghost">יציאה</button>
+  </div>
+  <div id="formArea" class="card">
+    <iframe id="questionnaire" src="questionnaire.html" title="שאלון"></iframe>
+  </div>
+  <div id="expiredView" class="card hidden">
+    <h2>תקופת הניסיון הסתיימה</h2>
+    <p class="muted">לצורך המשך, פנה לנציג.</p>
+  </div>
+</section>
+
+<!-- מנהל -->
+<section id="ownerView" class="hidden">
+  <div class="card">
+    <h2>מנהל: בקשות ממתינות</h2>
+    <button id="ownerLogout" class="ghost">יציאה</button>
+    <button id="purgeBtn" class="ghost">מחק תשובות ישנות מ-30 יום</button>
+    <div id="ownerMsg" class="muted"></div>
+  </div>
+  <div class="card"><div id="ownerList">טוען...</div></div>
+</section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.45.4/supabase.min.js"></script>
+<script>
+(function () {
+  // פרטי הפרויקט הציבוריים של Supabase (המפתח הציבורי מיועד לדפדפן)
+  const SUPABASE_URL = 'https://ybwxcpblvsrjbazdueya.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_gAEmxJmMZPI8Yv_BaXfUpg_MfPxWo4B';
+  const OWNER_EMAIL = 'eldad64@gmail.com';
+
+  const $ = id => document.getElementById(id);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let mode = 'login';
+
+  function show(id) {
+    ['authView', 'learnerView', 'ownerView'].forEach(v => $(v).classList.toggle('hidden', v !== id));
+    $('status').classList.add('hidden');
+  }
+
+  function daysLeft(iso) {
+    return Math.ceil((new Date(iso) - Date.now()) / 86400000);
+  }
+
+  async function route() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { show('authView'); return; }
+    const email = session.user.email || '';
+    if (email === OWNER_EMAIL) { show('ownerView'); await loadOwner(); return; }
+
+    const { data: profile, error } = await sb.from('loan_profiles').select('trial_ends_at').eq('id', session.user.id).maybeSingle();
+    if (error || !profile) { $('authMsg').textContent = 'לא נמצא פרופיל. נסה שוב או פנה לנציג.'; await sb.auth.signOut(); show('authView'); return; }
+
+    const left = daysLeft(profile.trial_ends_at);
+    if (left <= 0) { $('trialText').textContent = ''; $('trialNote').textContent = ''; $('formArea').classList.add('hidden'); $('expiredView').classList.remove('hidden'); show('learnerView'); return; }
+    $('trialText').textContent = `נותרו ${left} ימים לתקופת הניסיון`;
+    $('trialNote').textContent = 'אפשר למלא את השאלון בקצב שלך.';
+    $('formArea').classList.remove('hidden');
+    $('expiredView').classList.add('hidden');
+    show('learnerView');
+  }
+
+  // קבלת תשובות מהשאלון ושמירתן
+  window.addEventListener('message', async (ev) => {
+    if (!ev.data || ev.data.type !== 'loan-answers') return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: ev.data.answers });
+    if (error) { alert('השמירה נכשלה. נסה שוב או פנה לנציג.'); return; }
+  });
+
+  $('signupBtn').addEventListener('click', async () => {
+    if (mode !== 'signup') { mode = 'signup'; $('nameWrap').classList.remove('hidden'); $('signupBtn').textContent = 'אישור הרשמה'; return; }
+    const email = $('email').value.trim(), password = $('password').value;
+    const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: $('fullName').value.trim() } } });
+    $('authMsg').textContent = error ? error.message : 'נרשמת. אפשר להתחבר.';
+    if (!error) { mode = 'login'; $('nameWrap').classList.add('hidden'); }
+  });
+
+  $('loginBtn').addEventListener('click', async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    if (error) { $('authMsg').textContent = 'הכניסה נכשלה: ' + error.message; return; }
+    $('authMsg').textContent = '';
+    await route();
+  });
+
+  $('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+  $('ownerLogout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+  // מנהל: רשימת בקשות ואישור/דחייה שמוחקים את התשובות
+  async function loadOwner() {
+    const { data: answers, error } = await sb.from('loan_answers').select('user_id, answers, submitted_at').order('submitted_at', { ascending: false });
+    if (error) { $('ownerList').textContent = 'שגיאה בטעינה: ' + error.message; return; }
+    const { data: profiles } = await sb.from('loan_profiles').select('id, full_name, trial_ends_at');
+    const byId = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+    if (!answers || !answers.length) { $('ownerList').textContent = 'אין בקשות ממתינות.'; return; }
+    $('ownerList').innerHTML = '<table><tr><th>שם</th><th>הוגש</th><th>תשובות</th><th>החלטה</th></tr>' +
+      answers.map(r => {
+        const p = byId[r.user_id] || {};
+        return `<tr><td>${esc(p.full_name || '—')}</td><td>${new Date(r.submitted_at).toLocaleString('he-IL')}</td>
+          <td><pre style="white-space:pre-wrap;font-size:12px">${esc(JSON.stringify(r.answers, null, 1))}</pre></td>
+          <td><button data-ok="${r.user_id}" data-name="${esc(p.full_name || '')}">אשר</button>
+          <button class="ghost" data-no="${r.user_id}" data-name="${esc(p.full_name || '')}">דחה</button></td></tr>`;
+      }).join('') + '</table>';
+    document.querySelectorAll('[data-ok],[data-no]').forEach(b => b.addEventListener('click', () => decide(b)));
+  }
+
+  async function decide(btn) {
+    const isOk = btn.hasAttribute('data-ok');
+    const userId = btn.dataset.ok || btn.dataset.no;
+    const decision = isOk ? 'approved' : 'rejected';
+    // רישום קצר בלבד, ואז מחיקת התשובות
+    const { error: e1 } = await sb.from('loan_decisions').insert({ user_id: userId, full_name: btn.dataset.name, decision });
+    if (e1) { $('ownerMsg').textContent = 'שגיאה ברישום: ' + e1.message; return; }
+    const { error: e2 } = await sb.from('loan_answers').delete().eq('user_id', userId);
+    if (e2) { $('ownerMsg').textContent = 'שגיאה במחיקה: ' + e2.message; return; }
+    $('ownerMsg').textContent = 'נשמרה ההחלטה והתשובות נמחקו.';
+    await loadOwner();
+  }
+
+  $('purgeBtn').addEventListener('click', async () => {
+    const { error } = await sb.rpc('loan_purge_old');
+    $('ownerMsg').textContent = error ? 'שגיאה: ' + error.message : 'בוצע ניקוי.';
+    await loadOwner();
+  });
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  route();
+})();
+</script>
+</body>
+</html>
