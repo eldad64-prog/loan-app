@@ -27,9 +27,32 @@
   .res .ask { color:var(--muted); font-style:italic; }
   .score { color:#fff; padding:8px; border-radius:8px; margin:6px 0; text-align:center; }
   .small { color:var(--muted); font-size:13px; }
+  .welcome { position:fixed; inset:0; background:rgba(40,80,70,.35); display:none; align-items:center; justify-content:center; padding:18px; z-index:50; }
+  .welcome.show { display:flex; }
+  .welcome-box { background:#f4fbf7; color:#1f3d36; border:1px solid #cfe9dd; border-radius:18px; padding:22px; max-width:420px; width:100%; box-shadow:0 10px 30px rgba(20,60,50,.18); }
+  .welcome-box h2 { color:#2b6e5a; margin:6px 0 8px; }
+  .welcome-box ul { padding-right:20px; margin:10px 0 16px; line-height:1.9; }
+  .welcome-icon { font-size:34px; text-align:center; }
+  .welcome-box button { width:100%; background:#4f9d84; color:#fff; font-size:17px; padding:14px; border-radius:12px; }
 </style>
 </head>
 <body>
+<div id="welcome" class="welcome">
+  <div class="welcome-box">
+    <div class="welcome-icon">🌿</div>
+    <h2>ברוך הבא</h2>
+    <p>כאן תמלא שאלון קצר שעוזר לנו להבין את הבקשה שלך.</p>
+    <ul>
+      <li>ההרשמה לוקחת דקה, עם מייל וסיסמה.</li>
+      <li>מקבלים 14 ימי ניסיון למילוי השאלון.</li>
+      <li>השאלון לוקח בערך 10 דקות.</li>
+      <li>אפשר לענות בקצב שלך, ולדלג על שאלה שלא נוחה.</li>
+      <li>אין צורך להכין מסמכים עכשיו. נבקש אותם רק אם יידרשו.</li>
+    </ul>
+    <button id="welcomeOk">הבנתי, בוא נתחיל</button>
+  </div>
+</div>
+
 <main>
 
 <div id="status" class="muted">טוען...</div>
@@ -97,7 +120,11 @@
 
   async function route() {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { show('authView'); return; }
+    if (!session) {
+      show('authView');
+      if (!sessionStorage.getItem('welcomeSeen')) $('welcome').classList.add('show');
+      return;
+    }
     const email = session.user.email || '';
     if (email === OWNER_EMAIL) { show('ownerView'); await loadOwner(); return; }
 
@@ -121,6 +148,11 @@
     const payload = { ...ev.data.answers, summaryHtml: ev.data.summaryHtml || '' };
     const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
     if (error) { alert('השמירה נכשלה. נסה שוב או פנה לנציג.'); return; }
+  });
+
+  $('welcomeOk').addEventListener('click', () => {
+    $('welcome').classList.remove('show');
+    try { sessionStorage.setItem('welcomeSeen', '1'); } catch (e) {}
   });
 
   // הרשמה בלבד: אחרי הרשמה מתחילה תקופת הניסיון והשאלון נפתח מיד.
