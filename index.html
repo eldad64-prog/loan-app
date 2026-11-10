@@ -78,6 +78,9 @@
   <label>ชื่อ-นามสกุล<input type="text" id="fullName"></label>
   <div id="authMsg" class="err"></div>
   <button id="signupBtn">สมัคร</button>
+  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+  <p class="small">สำหรับผู้ดูแลระบบ: กรอกอีเมลด้านบน แล้วกดปุ่มด้านล่างเพื่อรับลิงก์เข้าสู่ระบบทางอีเมล</p>
+  <button id="ownerLinkBtn" class="ghost">ส่งลิงก์เข้าสู่ระบบไปยังอีเมล</button>
 </section>
 
 <!-- ลูกค้า: แบบสอบถาม -->
@@ -197,6 +200,14 @@
     if (error) { $('authMsg').textContent = error.message; return; }
     if (data.session) { await route(); return; }
     $('authMsg').textContent = 'เราส่งอีเมลยืนยันให้คุณแล้ว เมื่อยืนยันแล้ว กลับมาสมัครอีกครั้งด้วยข้อมูลเดิม';
+  });
+
+  // כניסת מנהל בקישור במייל (כמו בידידים)
+  $('ownerLinkBtn').addEventListener('click', async () => {
+    const email = $('email').value.trim();
+    if (!email) { $('authMsg').textContent = 'הזן את המייל למעלה.'; return; }
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://eldad64-prog.github.io/loan-app/' } });
+    $('authMsg').textContent = error ? error.message : 'נשלח קישור כניסה למייל. לחץ עליו כדי להיכנס.';
   });
 
   $('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
