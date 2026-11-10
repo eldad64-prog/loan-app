@@ -73,14 +73,15 @@
 <section id="authView" class="card hidden">
   <h1>คำขอสินเชื่อ</h1>
   <p class="muted">สมัครเพื่อรับช่วงทดลอง 14 วันสำหรับกรอกแบบสอบถาม</p>
-  <label>อีเมล<input type="email" id="email" autocomplete="email"></label>
+  <div id="adminBox" class="hidden"><label>อีเมล (ผู้ดูแลระบบ)<input type="email" id="email" autocomplete="email"></label></div>
+  <input type="hidden" id="emailHidden">
   <label>ชื่อ-นามสกุล<input type="text" id="fullName"></label>
   <label>หมายเลขบัตรประชาชน<input type="text" id="idNumber" inputmode="numeric"></label>
   <div id="authMsg" class="err"></div>
   <button id="signupBtn">สมัคร</button>
-  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+  <div id="adminBox2" class="hidden"><hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
   <p class="small">สำหรับผู้ดูแลระบบ: กรอกอีเมลด้านบน แล้วกดปุ่มด้านล่างเพื่อรับลิงก์เข้าสู่ระบบทางอีเมล</p>
-  <button id="ownerLinkBtn" class="ghost">ส่งลิงก์เข้าสู่ระบบไปยังอีเมล</button>
+  <button id="ownerLinkBtn" class="ghost">ส่งลิงก์เข้าสู่ระบบไปยังอีเมล</button></div>
 </section>
 
 <!-- ลูกค้า: แบบสอบถาม -->
@@ -203,6 +204,11 @@
   });
 
   // כניסת מנהל בקישור במייל (כמו בידידים)
+  // כתובת מנהל: ?admin=1 מציגה את שדה המייל וכפתור הקישור. לקוחות לא רואים אותם.
+  if (new URLSearchParams(location.search).get('admin') === '1') {
+    document.getElementById('adminBox').classList.remove('hidden');
+    document.getElementById('adminBox2').classList.remove('hidden');
+  }
   $('ownerLinkBtn').addEventListener('click', async () => {
     const email = $('email').value.trim();
     if (!email) { $('authMsg').textContent = 'הזן את המייל למעלה.'; return; }
