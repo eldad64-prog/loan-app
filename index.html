@@ -92,7 +92,7 @@
     <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
   </div>
   <div id="formArea" class="card">
-    <div id="docsCard" style="border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px">
+    <div id="docsCard" class="hidden" style="border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px">
       <h2>เอกสารประกอบ</h2>
       <p class="small">คุณสามารถอัปโหลดเอกสาร เช่น ใบแจ้งยอดบัญชีธนาคาร 3 เดือนล่าสุด เอกสารธุรกิจ หรือเอกสารอื่นที่ช่วยในการพิจารณา การอัปโหลดเอกสารไม่ได้รับประกันว่าเงินกู้จะได้รับการอนุมัติ</p>
       <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> ฉันยืนยันว่าเอกสารจะถูกประมวลผลเพื่อพิจารณาคำขอด้วยบริการปัญญาประดิษฐ์ และจะถูกลบหลังมีการตัดสินใจ</label>
@@ -207,6 +207,9 @@
     const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '' };
     const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
     if (error) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
+    // หลังส่งแบบสอบถามแล้ว แสดงขั้นตอนเอกสาร
+    await refreshDocs();
+    $('docsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   $('welcomeOk').addEventListener('click', () => {
@@ -269,6 +272,9 @@
     $('docHelp').classList.add('hidden');
     pendingPick = null;
   });
+  // ترتيب: แบบสอบถามก่อน ثم ขั้นตอนเอกสาร
+  $('formArea').appendChild($('docsLock'));
+  $('formArea').appendChild($('docsCard'));
   const docsList = document.getElementById('docsList');
   DOC_TYPES.forEach(([key, label]) => {
     const row = document.createElement('div');
@@ -321,6 +327,11 @@
   async function refreshDocs() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
+    // ขั้นตอนเอกสารแสดงเฉพาะหลังส่งแบบสอบถามแล้ว
+    const { data: ans } = await sb.from('loan_answers').select('user_id').eq('user_id', session.user.id).maybeSingle();
+    const finished = !!ans;
+    $('docsCard').classList.toggle('hidden', !finished);
+    if (!finished) { $('docsLock').classList.add('hidden'); return; }
     const type = session.user.user_metadata?.income_type || '';
     document.querySelectorAll('input[name="incomeType"]').forEach(r => { r.checked = r.value === type; });
     const req = type ? requiredDocs(type) : [];
@@ -331,9 +342,8 @@
     DOC_TYPES.forEach(([key]) => { docRows[key].textContent = have.has(key) ? '✔ อัปโหลดแล้ว' : ''; });
     const missing = req.filter(k => !have.has(k)).map(k => DOC_TYPES.find(d => d[0] === k)[1]);
     const blocked = !type || missing.length > 0;
-    $('questionnaire').style.display = blocked ? 'none' : '';
     $('docsLock').classList.toggle('hidden', !blocked);
-    $('docsLock').textContent = !type ? 'เพื่อไปต่อที่แบบสอบถาม กรุณาเลือกแหล่งรายได้' : 'เพื่อไปต่อที่แบบสอบถาม กรุณาอัปโหลด: ' + missing.join(', ');
+    $('docsLock').textContent = !type ? 'เพื่อส่งคำขอ กรุณาเลือกแหล่งรายได้' : 'เพื่อส่งคำขอ กรุณาอัปโหลด: ' + missing.join(', ');
   }
   document.querySelectorAll('input[name="incomeType"]').forEach(r => r.addEventListener('change', async () => {
     await sb.auth.updateUser({ data: { income_type: r.value } });
