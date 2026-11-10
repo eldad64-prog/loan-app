@@ -93,14 +93,14 @@
   </div>
   <div id="formArea" class="card">
     <div id="docsCard" style="border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px">
-      <h2>מסמכים (לא חובה)</h2>
-      <p class="small">אפשר להעלות דפי חשבון בנק של 3 חודשים, מסמכי העסק, או כל מסמך אחר שיעזור לבדיקה. העלאת מסמכים אינה מבטיחה אישור ההלוואה.</p>
-      <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> אני מאשר/ת שהמסמכים יעובדו לצורך בחינת הבקשה בעזרת שירות בינה מלאכותית, ושיימחקו לאחר ההחלטה.</label>
+      <h2>เอกสารประกอบ</h2>
+      <p class="small">คุณสามารถอัปโหลดเอกสาร เช่น ใบแจ้งยอดบัญชีธนาคาร 3 เดือนล่าสุด เอกสารธุรกิจ หรือเอกสารอื่นที่ช่วยในการพิจารณา การอัปโหลดเอกสารไม่ได้รับประกันว่าเงินกู้จะได้รับการอนุมัติ</p>
+      <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> ฉันยืนยันว่าเอกสารจะถูกประมวลผลเพื่อพิจารณาคำขอด้วยบริการปัญญาประดิษฐ์ และจะถูกลบหลังมีการตัดสินใจ</label>
       <div id="incomeType" class="small" style="margin:8px 0">
-        <b>מה מקור ההכנסה שלך?</b><br>
-        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="salary"> שכיר</label>
-        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="self"> עצמאי / בעל עסק</label>
-        <label><input type="radio" name="incomeType" value="other"> אחר</label>
+        <b>แหล่งรายได้ของคุณคืออะไร?</b><br>
+        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="salary"> พนักงานประจำ</label>
+        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="self"> อาชีพอิสระ / เจ้าของธุรกิจ</label>
+        <label><input type="radio" name="incomeType" value="other"> อื่นๆ</label>
       </div>
       <div id="docsList" style="margin-top:6px"></div>
       <div id="docsMsg" class="small" style="margin-top:8px"></div>
@@ -110,8 +110,8 @@
       <div class="card" style="max-width:420px;margin:12vh auto;background:#fff">
         <h2 id="docHelpTitle"></h2>
         <p id="docHelpText" style="font-size:17px;line-height:1.6"></p>
-        <button id="docHelpOk" style="width:100%;font-size:18px;padding:14px">בחר קובץ</button>
-        <button id="docHelpCancel" class="ghost" style="width:100%;margin-top:8px">ביטול</button>
+        <button id="docHelpOk" style="width:100%;font-size:18px;padding:14px">เลือกไฟล์</button>
+        <button id="docHelpCancel" class="ghost" style="width:100%;margin-top:8px">ยกเลิก</button>
       </div>
     </div>
     <iframe id="questionnaire" src="questionnaire.html" title="แบบสอบถาม"></iframe>
@@ -229,14 +229,14 @@
   // העלאת מסמכי לקוח לתיקייה הפרטית (רק לאחר אישור)
   // רשימת סוגי מסמכים: לכל סוג כפתור העלאה משלו
   const DOC_TYPES = [
-    ['id', 'תעודת זהות או דרכון'],
-    ['payslip', 'תלושי שכר (3 חודשים אחרונים)'],
-    ['bank', 'דף חשבון בנק (3 חודשים אחרונים)'],
-    ['business', 'רישום עסק'],
-    ['tax', 'דוחות מס אחרונים'],
-    ['bizbank', 'דף חשבון עסקי (3 חודשים אחרונים). אם אין חשבון בנק עסקי, שלח את דף החשבון של המקום שבו מנוהלים כספי העסק'],
-    ['guarantor', 'מסמכי ערב או בטוחה'],
-    ['other', 'מסמך נוסף']
+    ['id', 'บัตรประชาชน หรือ หนังสือเดินทาง'],
+    ['payslip', 'สลิปเงินเดือน (3 เดือนล่าสุด)'],
+    ['bank', 'ใบแจ้งยอดบัญชีธนาคาร (3 เดือนล่าสุด)'],
+    ['business', 'เอกสารจดทะเบียนธุรกิจ'],
+    ['tax', 'รายงานภาษีล่าสุด'],
+    ['bizbank', 'ใบแจ้งยอดบัญชีธุรกิจ (3 เดือนล่าสุด) หากไม่มีบัญชีธนาคารธุรกิจ ให้ส่งใบแจ้งยอดของบัญชีที่ใช้จัดการเงินของธุรกิจ'],
+    ['guarantor', 'เอกสารของผู้ค้ำประกันหรือหลักประกัน'],
+    ['other', 'เอกสารอื่นๆ']
   ];
   // מסמכים חובה: בלעדיהם לא ניתן להמשיך לשאלון
   // מסמכי חובה לפי מקור ההכנסה: עצמאי צריך גם דף חשבון עסקי
@@ -245,14 +245,14 @@
   const docStars = {};
   // הסבר קצר לכל מסמך, מוצג לפני בחירת הקובץ
   const DOC_HELP = {
-    id: 'צלם או סרוק את העמוד עם התמונה והפרטים. ודא שהתמונה ברורה וקריאה.',
-    payslip: 'העלה את תלושי השכר של 3 החודשים האחרונים. ודא שמופיעים שם, תאריך ושכר נטו.',
-    bank: 'העלה דף חשבון בנק של 3 החודשים האחרונים. ודא שמופיעים שם הבעלים, מספר החשבון, התאריכים והתנועות. אפשר להוריד מאפליקציית הבנק כקובץ PDF.',
-    business: 'תעודת רישום עסק, אישור ניהול ספרים או רישיון עסק.',
-    tax: 'דוח מס שנתי אחרון, או אישור ניהול ספרים.',
-    bizbank: 'העלה דף חשבון של 3 החודשים האחרונים. אם אין חשבון בנק עסקי, שלח את דף החשבון של המקום שבו מנוהלים כספי העסק.',
-    guarantor: 'תעודת זהות של הערב, ומסמך הבטוחה אם יש.',
-    other: 'כל מסמך נוסף שיעזור לבדיקה.'
+    id: 'ถ่ายรูปหรือสแกนหน้าที่มีรูปและข้อมูล ตรวจสอบว่าภาพชัดและอ่านได้',
+    payslip: 'อัปโหลดสลิปเงินเดือน 3 เดือนล่าสุด ตรวจสอบว่ามีชื่อ วันที่ และยอดเงินเดือนสุทธิ',
+    bank: 'อัปโหลดใบแจ้งยอดบัญชีธนาคาร 3 เดือนล่าสุด ตรวจสอบว่ามีชื่อเจ้าของบัญชี เลขบัญชี วันที่ และรายการเดินบัญชี สามารถดาวน์โหลดเป็นไฟล์ PDF จากแอปธนาคารได้',
+    business: 'เอกสารจดทะเบียนธุรกิจ ใบอนุญาตประกอบกิจการ หรือหนังสือรับรองการทำบัญชี',
+    tax: 'รายงานภาษีประจำปีล่าสุด หรือหนังสือรับรองการทำบัญชี',
+    bizbank: 'อัปโหลดใบแจ้งยอด 3 เดือนล่าสุด หากไม่มีบัญชีธนาคารธุรกิจ ให้ส่งใบแจ้งยอดของบัญชีที่ใช้จัดการเงินของธุรกิจ',
+    guarantor: 'บัตรประชาชนของผู้ค้ำประกัน และเอกสารหลักประกันหากมี',
+    other: 'เอกสารอื่นใดที่ช่วยในการพิจารณา'
   };
   let pendingPick = null;
   function openHelp(key, label, inp) {
@@ -282,12 +282,17 @@
     status.style.color = '#1e8e3e';
     docRows[key] = status;
     const btn = document.createElement('button');
-    btn.textContent = '📎 העלה';
+    btn.textContent = '📎 อัปโหลด';
     btn.style.cssText = 'padding:8px 12px;font-size:15px;white-space:nowrap';
     const inp = document.createElement('input');
     inp.type = 'file'; inp.multiple = true; inp.accept = 'application/pdf,image/*'; inp.style.display = 'none';
     btn.addEventListener('click', () => {
-      if (!$('docsConsent').checked) { $('docsMsg').textContent = 'יש לאשר את התנאי לפני בחירת המסמכים.'; return; }
+      if (!$('docsConsent').checked) {
+        $('docsMsg').textContent = 'กรุณายืนยันเงื่อนไขด้านบนก่อนเลือกเอกสาร';
+        $('docsMsg').style.cssText = 'color:#c0392b;font-weight:bold;margin-top:8px';
+        $('docsConsent').parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
       openHelp(key, label, inp);
     });
     inp.addEventListener('change', () => uploadFor(key, label, inp));
@@ -296,17 +301,18 @@
   });
   async function uploadFor(key, label, inp) {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { $('docsMsg').textContent = 'יש להירשם קודם.'; return; }
+    if (!session) { $('docsMsg').textContent = 'กรุณาสมัครก่อน'; return; }
     const files = [...inp.files];
     if (!files.length) return;
-    $('docsMsg').textContent = 'מעלה: ' + label + '...';
+    $('docsMsg').textContent = 'กำลังอัปโหลด: ' + label + '...';
     for (const f of files) {
       const safe = f.name.replace(/[^\w.\-]/g, '_');
       const path = session.user.id + '/' + key + '__' + Date.now() + '-' + safe;
       const { error } = await sb.storage.from('loan-documents').upload(path, f, { upsert: false });
-      if (error) { $('docsMsg').textContent = 'שגיאה: ' + error.message; return; }
+      if (error) { $('docsMsg').textContent = 'เกิดข้อผิดพลาด: ' + error.message; return; }
     }
-    $('docsMsg').textContent = 'הועלה: ' + label + '. תודה.';
+    $('docsMsg').textContent = 'อัปโหลดแล้ว: ' + label;
+    $('docsMsg').style.cssText = 'color:#1e8e3e;font-weight:bold;margin-top:8px';
     inp.value = '';
     await refreshDocs();
   }
@@ -322,12 +328,12 @@
     const { data: files, error } = await sb.storage.from('loan-documents').list(session.user.id, { limit: 200 });
     if (error) return;
     const have = new Set((files || []).map(f => f.name.split('__')[0]));
-    DOC_TYPES.forEach(([key]) => { docRows[key].textContent = have.has(key) ? '✔ הועלה' : ''; });
+    DOC_TYPES.forEach(([key]) => { docRows[key].textContent = have.has(key) ? '✔ อัปโหลดแล้ว' : ''; });
     const missing = req.filter(k => !have.has(k)).map(k => DOC_TYPES.find(d => d[0] === k)[1]);
     const blocked = !type || missing.length > 0;
     $('questionnaire').style.display = blocked ? 'none' : '';
     $('docsLock').classList.toggle('hidden', !blocked);
-    $('docsLock').textContent = !type ? 'כדי להמשיך לשאלון יש לבחור מקור הכנסה' : 'כדי להמשיך לשאלון יש להעלות: ' + missing.join(', ');
+    $('docsLock').textContent = !type ? 'เพื่อไปต่อที่แบบสอบถาม กรุณาเลือกแหล่งรายได้' : 'เพื่อไปต่อที่แบบสอบถาม กรุณาอัปโหลด: ' + missing.join(', ');
   }
   document.querySelectorAll('input[name="incomeType"]').forEach(r => r.addEventListener('change', async () => {
     await sb.auth.updateUser({ data: { income_type: r.value } });
