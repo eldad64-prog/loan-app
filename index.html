@@ -93,17 +93,11 @@
   </div>
   <div id="formArea" class="card">
     <div id="docsCard" class="hidden" style="border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px">
-      <h2>เอกสารประกอบ</h2>
-      <p class="small">คุณสามารถอัปโหลดเอกสาร เช่น ใบแจ้งยอดบัญชีธนาคาร 3 เดือนล่าสุด เอกสารธุรกิจ หรือเอกสารอื่นที่ช่วยในการพิจารณา การอัปโหลดเอกสารไม่ได้รับประกันว่าเงินกู้จะได้รับการอนุมัติ</p>
-      <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> ฉันยืนยันว่าเอกสารจะถูกประมวลผลเพื่อพิจารณาคำขอด้วยบริการปัญญาประดิษฐ์ และจะถูกลบหลังมีการตัดสินใจ</label>
-      <div id="incomeType" class="small" style="margin:8px 0">
-        <b>แหล่งรายได้ของคุณคืออะไร?</b><br>
-        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="salary"> พนักงานประจำ</label>
-        <label style="margin-inline-end:12px"><input type="radio" name="incomeType" value="self"> อาชีพอิสระ / เจ้าของธุรกิจ</label>
-        <label><input type="radio" name="incomeType" value="other"> อื่นๆ</label>
-      </div>
+      <h2>เอกสารที่ต้องใช้</h2>
+      <p class="small">การอัปโหลดเอกสารไม่ได้รับประกันว่าเงินกู้จะได้รับการอนุมัติ</p>
       <div id="docsList" style="margin-top:6px"></div>
       <div id="docsMsg" class="small" style="margin-top:8px"></div>
+      <label class="small" style="display:block;margin:12px 0 4px"><input type="checkbox" id="docsConsent"> ฉันยืนยันว่าเอกสารจะถูกประมวลผลเพื่อพิจารณาคำขอด้วยบริการปัญญาประดิษฐ์ และจะถูกลบหลังมีการตัดสินใจ</label>
     </div>
     <div id="docsLock" class="card hidden" style="color:#c0392b;font-weight:bold;text-align:center"></div>
     <div id="docHelp" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);padding:16px;overflow:auto;z-index:9999">
@@ -205,8 +199,13 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '' };
-    const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
-    if (error) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
+    // ยังไม่บันทึกคำขอ จนกว่าจะอัปโหลดเอกสารที่จำเป็นครบ
+    try {
+      localStorage.setItem('loanPending_' + session.user.id, JSON.stringify(payload));
+    } catch (e) {
+      const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
+      if (error) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
+    }
     // หลังส่งแบบสอบถามแล้ว แสดงขั้นตอนเอกสาร
     await refreshDocs();
     $('docsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -233,17 +232,11 @@
   // רשימת סוגי מסמכים: לכל סוג כפתור העלאה משלו
   const DOC_TYPES = [
     ['id', 'บัตรประชาชน หรือ หนังสือเดินทาง'],
-    ['payslip', 'สลิปเงินเดือน (3 เดือนล่าสุด)'],
     ['bank', 'ใบแจ้งยอดบัญชีธนาคาร (3 เดือนล่าสุด)'],
-    ['business', 'เอกสารจดทะเบียนธุรกิจ'],
-    ['tax', 'รายงานภาษีล่าสุด'],
-    ['bizbank', 'ใบแจ้งยอดบัญชีธุรกิจ (3 เดือนล่าสุด) หากไม่มีบัญชีธนาคารธุรกิจ ให้ส่งใบแจ้งยอดของบัญชีที่ใช้จัดการเงินของธุรกิจ'],
-    ['guarantor', 'เอกสารของผู้ค้ำประกันหรือหลักประกัน'],
     ['other', 'เอกสารอื่นๆ']
   ];
-  // מסמכים חובה: בלעדיהם לא ניתן להמשיך לשאלון
-  // מסמכי חובה לפי מקור ההכנסה: עצמאי צריך גם דף חשבון עסקי
-  function requiredDocs(type) { return type === 'self' ? ['id', 'bank', 'bizbank'] : ['id', 'bank']; }
+  // מסמכים חובה: בלעדיהם הבקשה לא נשלחת
+  function requiredDocs() { return ['id', 'bank']; }
   const docRows = {};
   const docStars = {};
   // הסבר קצר לכל מסמך, מוצג לפני בחירת הקובץ
@@ -294,7 +287,7 @@
     inp.type = 'file'; inp.multiple = true; inp.accept = 'application/pdf,image/*'; inp.style.display = 'none';
     btn.addEventListener('click', () => {
       if (!$('docsConsent').checked) {
-        $('docsMsg').textContent = 'กรุณายืนยันเงื่อนไขด้านบนก่อนเลือกเอกสาร';
+        $('docsMsg').textContent = 'กรุณายืนยันเงื่อนไขด้านล่างก่อนเลือกเอกสาร';
         $('docsMsg').style.cssText = 'color:#c0392b;font-weight:bold;margin-top:8px';
         $('docsConsent').parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
@@ -323,32 +316,39 @@
     await refreshDocs();
   }
 
-  // מציג מה הועלה, ונועל את השאלון עד שהמסמכים החובה קיימים
+  // ขั้นตอนเอกสาร: หลังส่งแบบสอบถาม ระบบจะบันทึกคำขอเมื่ออัปโหลดเอกสารที่จำเป็นครบเท่านั้น
   async function refreshDocs() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    // ขั้นตอนเอกสารแสดงเฉพาะหลังส่งแบบสอบถามแล้ว
     const { data: ans } = await sb.from('loan_answers').select('user_id').eq('user_id', session.user.id).maybeSingle();
-    const finished = !!ans;
+    const pendingKey = 'loanPending_' + session.user.id;
+    let pending = null;
+    try { pending = localStorage.getItem(pendingKey); } catch (e) {}
+    const finished = !!ans || !!pending;
+    $('questionnaire').style.display = finished ? 'none' : '';
     $('docsCard').classList.toggle('hidden', !finished);
     if (!finished) { $('docsLock').classList.add('hidden'); return; }
-    const type = session.user.user_metadata?.income_type || '';
-    document.querySelectorAll('input[name="incomeType"]').forEach(r => { r.checked = r.value === type; });
-    const req = type ? requiredDocs(type) : [];
+    const req = requiredDocs();
     DOC_TYPES.forEach(([key]) => { docStars[key].style.display = req.includes(key) ? '' : 'none'; });
     const { data: files, error } = await sb.storage.from('loan-documents').list(session.user.id, { limit: 200 });
     if (error) return;
     const have = new Set((files || []).map(f => f.name.split('__')[0]));
     DOC_TYPES.forEach(([key]) => { docRows[key].textContent = have.has(key) ? '✔ อัปโหลดแล้ว' : ''; });
     const missing = req.filter(k => !have.has(k)).map(k => DOC_TYPES.find(d => d[0] === k)[1]);
-    const blocked = !type || missing.length > 0;
-    $('docsLock').classList.toggle('hidden', !blocked);
-    $('docsLock').textContent = !type ? 'เพื่อส่งคำขอ กรุณาเลือกแหล่งรายได้' : 'เพื่อส่งคำขอ กรุณาอัปโหลด: ' + missing.join(', ');
+    if (missing.length) {
+      $('docsLock').classList.remove('hidden');
+      $('docsLock').textContent = 'เพื่อส่งคำขอ กรุณาอัปโหลด: ' + missing.join(', ');
+      return;
+    }
+    $('docsLock').classList.add('hidden');
+    if (pending && !ans) {
+      const { error: e2 } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: JSON.parse(pending) });
+      if (e2) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
+      try { localStorage.removeItem(pendingKey); } catch (e) {}
+    }
+    $('docsMsg').textContent = 'ส่งคำขอเรียบร้อยแล้ว ขอบคุณ เจ้าหน้าที่จะติดต่อกลับโดยเร็ว';
+    $('docsMsg').style.cssText = 'color:#1e8e3e;font-weight:bold;margin-top:8px';
   }
-  document.querySelectorAll('input[name="incomeType"]').forEach(r => r.addEventListener('change', async () => {
-    await sb.auth.updateUser({ data: { income_type: r.value } });
-    await refreshDocs();
-  }));
 
   // כניסת מנהל בקישור במייל (כמו בידידים)
   // כתובת מנהל: ?admin=1 מציגה את שדה המייל וכפתור הקישור. לקוחות לא רואים אותם.
