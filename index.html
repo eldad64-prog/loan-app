@@ -76,6 +76,7 @@
   <label>อีเมล<input type="email" id="email" autocomplete="email"></label>
   <label>รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)<input type="password" id="password" autocomplete="new-password"></label>
   <label>ชื่อ-นามสกุล<input type="text" id="fullName"></label>
+  <label>หมายเลขบัตรประชาชน<input type="text" id="idNumber" inputmode="numeric"></label>
   <div id="authMsg" class="err"></div>
   <button id="signupBtn">สมัคร</button>
   <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
@@ -180,7 +181,7 @@
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const payload = { ...ev.data.answers, name: ev.data.name || '', summaryHtml: ev.data.summaryHtml || '' };
+    const payload = { ...ev.data.answers, name: ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', summaryHtml: ev.data.summaryHtml || '' };
     const { error } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: payload });
     if (error) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
   });
@@ -193,10 +194,10 @@
   // สมัครอย่างเดียว: หลังสมัครเริ่มช่วงทดลองและเปิดแบบสอบถามทันที
   // ถ้าเคยสมัครแล้วด้วยรหัสเดิม ระบบจะเข้าสู่ระบบให้อัตโนมัติ
   $('signupBtn').addEventListener('click', async () => {
-    const email = $('email').value.trim(), password = $('password').value, name = $('fullName').value.trim();
-    if (!email || password.length < 8 || !name) { $('authMsg').textContent = 'กรุณากรอกชื่อ อีเมล และรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)'; return; }
+    const email = $('email').value.trim(), password = $('password').value, name = $('fullName').value.trim(), idNumber = $('idNumber').value.trim();
+    if (!email || password.length < 8 || !name || !idNumber) { $('authMsg').textContent = 'กรุณากรอกชื่อ เลขบัตรประชาชน อีเมล และรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)'; return; }
     $('authMsg').textContent = '';
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name, id_number: idNumber } } });
     if (error && /already/i.test(error.message)) {
       const r = await sb.auth.signInWithPassword({ email, password });
       if (r.error) { $('authMsg').textContent = 'อีเมลนี้มีอยู่แล้วกับรหัสผ่านอื่น กรุณาติดต่อเจ้าหน้าที่'; return; }
@@ -281,7 +282,7 @@
     return `
       <div class="sum">
         <div class="sum-head">
-          <div class="sum-name">${esc(name || 'ללא שם')}</div>
+          <div><div class="sum-name">${esc(name || 'ללא שם')}</div>${a.id_number ? `<div class="small">ת.ז: ${esc(a.id_number)}</div>` : ''}</div>
           <div class="sum-level" style="background:${level[1]}">רמת סיכון: ${level[0]}</div>
         </div>
         <div class="sum-sec">
