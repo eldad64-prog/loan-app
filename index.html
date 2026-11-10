@@ -57,7 +57,7 @@
     <h2>ยินดีต้อนรับ</h2>
     <p>ที่นี่คุณจะกรอกแบบสอบถามสั้นๆ เพื่อช่วยให้เราเข้าใจคำขอของคุณ</p>
     <ul>
-      <li>สมัครสมาชิกด้วยอีเมลและรหัสผ่าน ใช้เวลาเพียงไม่กี่นาที</li>
+      <li>กรอกชื่อและเลขบัตรประชาชน ใช้เวลาเพียงไม่กี่นาที</li>
       <li>คุณจะได้ช่วงทดลอง 14 วันสำหรับกรอกแบบสอบถาม</li>
       <li>แบบสอบถามใช้เวลาประมาณ 10 นาที</li>
       <li>ตอบตามจังหวะของคุณ และข้ามคำถามที่ไม่สะดวกได้</li>
@@ -74,7 +74,6 @@
   <h1>คำขอสินเชื่อ</h1>
   <p class="muted">สมัครเพื่อรับช่วงทดลอง 14 วันสำหรับกรอกแบบสอบถาม</p>
   <label>อีเมล<input type="email" id="email" autocomplete="email"></label>
-  <label>รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)<input type="password" id="password" autocomplete="new-password"></label>
   <label>ชื่อ-นามสกุล<input type="text" id="fullName"></label>
   <label>หมายเลขบัตรประชาชน<input type="text" id="idNumber" inputmode="numeric"></label>
   <div id="authMsg" class="err"></div>
@@ -194,19 +193,13 @@
   // สมัครอย่างเดียว: หลังสมัครเริ่มช่วงทดลองและเปิดแบบสอบถามทันที
   // ถ้าเคยสมัครแล้วด้วยรหัสเดิม ระบบจะเข้าสู่ระบบให้อัตโนมัติ
   $('signupBtn').addEventListener('click', async () => {
-    const email = $('email').value.trim(), password = $('password').value, name = $('fullName').value.trim(), idNumber = $('idNumber').value.trim();
-    if (!email || password.length < 8 || !name || !idNumber) { $('authMsg').textContent = 'กรุณากรอกชื่อ เลขบัตรประชาชน อีเมล และรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)'; return; }
+    const name = $('fullName').value.trim(), idNumber = $('idNumber').value.trim();
+    if (!name || !idNumber) { $('authMsg').textContent = 'กรุณากรอกชื่อ-นามสกุล และเลขบัตรประชาชน'; return; }
     $('authMsg').textContent = '';
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name, id_number: idNumber } } });
-    if (error && /already/i.test(error.message)) {
-      const r = await sb.auth.signInWithPassword({ email, password });
-      if (r.error) { $('authMsg').textContent = 'อีเมลนี้มีอยู่แล้วกับรหัสผ่านอื่น กรุณาติดต่อเจ้าหน้าที่'; return; }
-      await route();
-      return;
-    }
+    const { data, error } = await sb.auth.signInAnonymously({ options: { data: { full_name: name, id_number: idNumber } } });
     if (error) { $('authMsg').textContent = error.message; return; }
     if (data.session) { await route(); return; }
-    $('authMsg').textContent = 'เราส่งอีเมลยืนยันให้คุณแล้ว เมื่อยืนยันแล้ว กลับมาสมัครอีกครั้งด้วยข้อมูลเดิม';
+    $('authMsg').textContent = 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง';
   });
 
   // כניסת מנהל בקישור במייל (כמו בידידים)
@@ -341,7 +334,7 @@
 
   // הזמנת לקוח: הודעה מוכנה בתאילנדית עם קישור לאתר
   const APP_URL = 'https://eldad64-prog.github.io/loan-app/?new=1';
-  const INVITE_TEXT = 'สวัสดีค่ะ/ครับ 🙏\nเราเปิดแบบสอบถามสำหรับคำขอสินเชื่อของคุณ\nกรุณาเข้าที่ลิงก์นี้ สมัครด้วยอีเมลและรหัสผ่าน แล้วกรอกแบบสอบถามได้เลย (ใช้เวลาประมาณ 10 นาที และมีช่วงทดลอง 14 วัน)\n' + APP_URL;
+  const INVITE_TEXT = 'สวัสดีค่ะ/ครับ 🙏\nเราเปิดแบบสอบถามสำหรับคำขอสินเชื่อของคุณ\nกรุณาเข้าที่ลิงก์นี้ กรอกชื่อและเลขบัตรประชาชน แล้วกรอกแบบสอบถามได้เลย (ใช้เวลาประมาณ 10 นาที และมีช่วงทดลอง 14 วัน)\n' + APP_URL;
   $('inviteBtn').addEventListener('click', () => {
     $('inviteText').value = INVITE_TEXT;
     $('inviteMsg').textContent = '';
