@@ -199,7 +199,7 @@
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '' };
+    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '', invite: session.user.user_metadata?.invite || '' };
     // ยังไม่บันทึกคำขอ จนกว่าจะอัปโหลดเอกสารที่จำเป็นครบ
     try {
       localStorage.setItem('loanPending_' + session.user.id, JSON.stringify(payload));
@@ -223,7 +223,8 @@
     const name = $('fullName').value.trim(), idNumber = $('idNumber').value.trim();
     if (!name || !idNumber) { $('authMsg').textContent = 'กรุณากรอกชื่อ-นามสกุล และเลขบัตรประชาชน'; return; }
     $('authMsg').textContent = '';
-    const { data, error } = await sb.auth.signInAnonymously({ options: { data: { full_name: name, id_number: idNumber } } });
+    const invite = new URLSearchParams(location.search).get('ref') || '';
+    const { data, error } = await sb.auth.signInAnonymously({ options: { data: { full_name: name, id_number: idNumber, invite } } });
     if (error) { $('authMsg').textContent = error.message; return; }
     if (data.session) { await route(); return; }
     $('authMsg').textContent = 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง';
