@@ -150,12 +150,12 @@
 
   async function route() {
     // קישור הזמנה ללקוח (?new=1): תמיד מציג הרשמה, גם אם המכשיר מחובר כמנהל
-    if (new URLSearchParams(location.search).get('new') === '1') {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session && new URLSearchParams(location.search).get('new') === '1') {
       show('authView');
       if (!sessionStorage.getItem('welcomeSeen')) $('welcome').classList.add('show');
       return;
     }
-    const { data: { session } } = await sb.auth.getSession();
     if (!session) {
       show('authView');
       if (!sessionStorage.getItem('welcomeSeen')) $('welcome').classList.add('show');
