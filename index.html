@@ -103,6 +103,7 @@
     <p class="small">ההודעה מוכנה בתאילנדית. שלח אותה בוואטסאפ או העתק את הקישור.</p>
     <textarea id="inviteText" readonly style="width:100%;min-height:120px;padding:10px;border-radius:10px;border:1px solid #cfe9dd;font-size:15px;box-sizing:border-box;direction:ltr"></textarea>
     <button id="inviteWa" style="width:100%;margin-top:10px">שלח בוואטסאפ</button>
+    <button id="inviteMail" style="width:100%;margin-top:10px">שלח במייל</button>
     <button id="inviteCopy" class="ghost" style="width:100%;margin-top:8px">העתק הודעה</button>
     <button id="inviteClose" class="ghost" style="width:100%;margin-top:8px">סגור</button>
     <div id="inviteMsg" class="small"></div>
@@ -331,6 +332,10 @@
   $('inviteClose').addEventListener('click', () => $('inviteModal').classList.remove('show'));
   $('inviteWa').addEventListener('click', () => {
     window.open('https://wa.me/?text=' + encodeURIComponent(INVITE_TEXT), '_blank');
+  });
+  $('inviteMail').addEventListener('click', () => {
+    const subject = 'คำขอสินเชื่อ - แบบสอบถาม';
+    window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(INVITE_TEXT);
   });
   $('inviteCopy').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(INVITE_TEXT); $('inviteMsg').textContent = 'ההודעה הועתקה.'; }
