@@ -91,15 +91,15 @@
     <div class="muted" id="trialNote"></div>
     <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
   </div>
-  <div class="card" id="docsCard">
-    <h2>מסמכים (לא חובה)</h2>
-    <p class="small">אפשר להעלות דפי חשבון בנק של 3 חודשים, מסמכי העסק, או כל מסמך אחר שיעזור לבדיקה.</p>
-    <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> אני מאשר/ת שהמסמכים יעובדו לצורך בחינת הבקשה בעזרת שירות בינה מלאכותית, ושיימחקו לאחר ההחלטה.</label>
-    <input type="file" id="docsInput" multiple accept="application/pdf,image/*">
-    <button id="docsUpload" style="margin-top:8px">העלה מסמכים</button>
-    <div id="docsMsg" class="small" style="margin-top:8px"></div>
-  </div>
   <div id="formArea" class="card">
+    <div id="docsCard" style="border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px">
+      <h2>מסמכים (לא חובה)</h2>
+      <p class="small">אפשר להעלות דפי חשבון בנק של 3 חודשים, מסמכי העסק, או כל מסמך אחר שיעזור לבדיקה. העלאת מסמכים אינה מבטיחה אישור ההלוואה.</p>
+      <label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="docsConsent"> אני מאשר/ת שהמסמכים יעובדו לצורך בחינת הבקשה בעזרת שירות בינה מלאכותית, ושיימחקו לאחר ההחלטה.</label>
+      <input type="file" id="docsInput" multiple accept="application/pdf,image/*">
+      <button id="docsUpload" style="margin-top:8px">העלה מסמכים</button>
+      <div id="docsMsg" class="small" style="margin-top:8px"></div>
+    </div>
     <iframe id="questionnaire" src="questionnaire.html" title="แบบสอบถาม"></iframe>
   </div>
   <div id="expiredView" class="card hidden">
