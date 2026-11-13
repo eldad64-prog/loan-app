@@ -320,7 +320,6 @@
     name.textContent = label;
     const star = document.createElement('b'); star.textContent = ' *'; star.style.color = '#c0392b'; star.style.display = 'none';
     name.appendChild(star); docStars[key] = star;
-    name.appendChild(info);
     const status = document.createElement('span');
     status.className = 'small';
     status.style.color = '#1e8e3e';
@@ -331,6 +330,7 @@
     info.type = 'button';
     info.style.cssText = 'padding:2px 8px;font-size:13px;margin-inline-start:8px;vertical-align:middle';
     info.addEventListener('click', (ev) => { ev.stopPropagation(); showInfoHe(key, label); });
+    name.appendChild(info);
     const btn = document.createElement('button');
     btn.textContent = '📎 อัปโหลด';
     btn.style.cssText = 'padding:8px 12px;font-size:15px;white-space:nowrap';
