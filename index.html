@@ -201,7 +201,7 @@
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '', invite: session.user.user_metadata?.invite || '', request_no: String(Math.floor(10000 + Math.random() * 90000)) };
+    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '', invite: session.user.user_metadata?.invite || '', required_docs: requiredDocs(session), request_no: String(Math.floor(10000 + Math.random() * 90000)) };
     // ยังไม่บันทึกคำขอ จนกว่าจะอัปโหลดเอกสารที่จำเป็นครบ
     try {
       localStorage.setItem('loanPending_' + session.user.id, JSON.stringify(payload));
@@ -226,7 +226,8 @@
     if (!name || !idNumber) { $('authMsg').textContent = 'กรุณากรอกชื่อ-นามสกุล และเลขบัตรประชาชน'; return; }
     $('authMsg').textContent = '';
     const invite = new URLSearchParams(location.search).get('ref') || '';
-    const { data, error } = await sb.auth.signInAnonymously({ options: { data: { full_name: name, id_number: idNumber, invite } } });
+    const reqDocs = new URLSearchParams(location.search).get('req') || '';
+    const { data, error } = await sb.auth.signInAnonymously({ options: { data: { full_name: name, id_number: idNumber, invite, req: reqDocs } } });
     if (error) { $('authMsg').textContent = error.message; return; }
     if (data.session) { await route(); return; }
     $('authMsg').textContent = 'เกิดข้อผิดพลาด กรุณาลองอีกครั้ง';
@@ -244,7 +245,12 @@
     ['other', 'เอกสารอื่นๆ']
   ];
   // מסמכים חובה: בלעדיהם הבקשה לא נשלחת
-  function requiredDocs() { return ['id', 'bank', 'income']; }
+  // ברירת מחדל: תעודת זהות, דף חשבון ומעקב הכנסות. המנהל יכול לסמן מסמכים אחרים לכל לקוח
+  function requiredDocs(session) {
+    const r = session && session.user && session.user.user_metadata && session.user.user_metadata.req;
+    const keys = typeof r === 'string' && r ? r.split(',').filter(k => DOC_TYPES.some(d => d[0] === k)) : [];
+    return keys.length ? keys : ['id', 'bank', 'income'];
+  }
   const docRows = {};
   const docStars = {};
   // הסבר קצר לכל מסמך, מוצג לפני בחירת הקובץ
@@ -381,7 +387,7 @@
     $('questionnaire').style.display = finished ? 'none' : '';
     $('docsCard').classList.toggle('hidden', !finished);
     if (!finished) { $('docsLock').classList.add('hidden'); return; }
-    const req = requiredDocs();
+    const req = requiredDocs(session);
     DOC_TYPES.forEach(([key]) => { docStars[key].style.display = req.includes(key) ? '' : 'none'; });
     const { data: files, error } = await sb.storage.from('loan-documents').list(session.user.id, { limit: 200 });
     if (error) return;
