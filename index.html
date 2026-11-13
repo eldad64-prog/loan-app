@@ -138,8 +138,10 @@
     <button id="ownerLogout" class="ghost">יציאה</button>
     <button id="inviteBtn">📨 הזמנת לקוח</button>
     <button id="purgeBtn" class="ghost">מחק תשובות ישנות מ-30 יום</button>
+    <button id="byNameBtn" class="ghost">📋 סיכום בקשות לפי שם</button>
     <div id="ownerMsg" class="muted"></div>
   </div>
+  <div class="card hidden" id="byNameCard"><h2>בקשות לפי שם</h2><div id="byNameList"></div></div>
   <div class="card"><div id="ownerList">טוען...</div></div>
 </section>
 
@@ -199,7 +201,7 @@
     if (!ev.data || ev.data.type !== 'loan-answers') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '', invite: session.user.user_metadata?.invite || '' };
+    const payload = { ...ev.data.answers, name: session.user.user_metadata?.full_name || ev.data.name || '', id_number: session.user.user_metadata?.id_number || '', docs_consent: !!($('docsConsent') && $('docsConsent').checked), summaryHtml: ev.data.summaryHtml || '', invite: session.user.user_metadata?.invite || '', request_no: String(Math.floor(10000 + Math.random() * 90000)) };
     // ยังไม่บันทึกคำขอ จนกว่าจะอัปโหลดเอกสารที่จำเป็นครบ
     try {
       localStorage.setItem('loanPending_' + session.user.id, JSON.stringify(payload));
@@ -233,8 +235,12 @@
   // העלאת מסמכי לקוח לתיקייה הפרטית (רק לאחר אישור)
   // רשימת סוגי מסמכים: לכל סוג כפתור העלאה משלו
   const DOC_TYPES = [
-    ['id', 'บัตรประชาชน หรือ หนังสือเดินทาง'],
+    ['id', 'สำเนาบัตรประชาชน'],
     ['bank', 'ใบแจ้งยอดบัญชีธนาคาร (3 เดือนล่าสุด)'],
+    ['income', 'บันทึกรายได้รายวันของธุรกิจ'],
+    ['loans', 'สัญญาเงินกู้ที่มีอยู่ พร้อมยอดคงเหลือ'],
+    ['lease', 'หนังสือรับรองกรรมสิทธิ์หรือสัญญาเช่า'],
+    ['collateral', 'เอกสารการจำนองหรือจำนำของหลักประกันในธุรกิจ'],
     ['other', 'เอกสารอื่นๆ']
   ];
   // מסמכים חובה: בלעדיהם הבקשה לא נשלחת
@@ -250,12 +256,48 @@
     tax: 'รายงานภาษีประจำปีล่าสุด หรือหนังสือรับรองการทำบัญชี',
     bizbank: 'อัปโหลดใบแจ้งยอด 3 เดือนล่าสุด หากไม่มีบัญชีธนาคารธุรกิจ ให้ส่งใบแจ้งยอดของบัญชีที่ใช้จัดการเงินของธุรกิจ',
     guarantor: 'บัตรประชาชนของผู้ค้ำประกัน และเอกสารหลักประกันหากมี',
-    other: 'เอกสารอื่นใดที่ช่วยในการพิจารณา'
+    other: 'เอกสารอื่นใดที่ช่วยในการพิจารณา',
+    income: 'บันทึกรายได้ของธุรกิจในแต่ละวัน ไม่ว่าจะเป็นสมุด แอปพลิเคชัน หรือตาราง Excel ต้องมีวันที่และยอดรายได้ของแต่ละวัน',
+    loans: 'สัญญาเงินกู้ทุกฉบับที่ยังมียอดคงค้าง พร้อมยอดคงเหลือปัจจุบัน และเอกสารการต่อสัญญาครั้งล่าสุด (ถ้ามี)',
+    lease: 'เอกสารที่ยืนยันว่าสถานที่ประกอบกิจการเป็นของคุณหรือคุณเช่าอยู่ เช่น โฉนดที่ดิน หรือสัญญาเช่า',
+    collateral: 'เอกสารของหลักประกันที่ใช้กับธุรกิจ เช่น โฉนดที่ดินหรือเล่มทะเบียนรถ หากมีการจำนองหรือจำนำ ให้แนบหนังสือยอดคงเหลือจากผู้ให้กู้และสัญญา หากไม่มี ให้เขียนคำรับรองว่าไม่มีการจำนองหรือจำนำ'
+  };
+  // הסבר בעברית לכל מסמך (מוצג מתחת להסבר בתאילנדית, לצורך בדיקה)
+  const DOC_HELP_HE = {
+    id: 'צילום ברור של תעודת הזהות, קריא ובו כל הפרטים.',
+    bank: 'דפי חשבון מ-3 החודשים האחרונים, עם שם בעל החשבון, מספר חשבון, תאריכים ותנועות. אפשר להוריד PDF מאפליקציית הבנק.',
+    income: 'רישום יומי של הכנסות העסק בכל צורה (מחברת, אפליקציה או טבלה), עם תאריך וסכום לכל יום.',
+    loans: 'כל הלוואה פעילה, עם היתרה הנוכחית ומסמך החידוש האחרון אם קיים.',
+    lease: 'מסמך שמוכיח שמקום העסק שייך ללקוח או שהוא שוכר אותו: נסח מקרקעין (โฉนด) או חוזה שכירות.',
+    collateral: 'מסמכי הבטוחה בעסק (נסח מקרקעין או ספר רישום רכב). אם יש שעבוד, לצרף אישור יתרה מהמלווה ואת ההסכם. אם אין, לצרף הצהרה בכתב שאין שעבודים.',
+    other: 'כל מסמך נוסף שיכול לעזור בבדיקת הבקשה.'
   };
   let pendingPick = null;
+  // הסבר בעברית בלבד, בלי בחירת קובץ (נפתח מכפתור ℹ️ ליד כל מסמך)
+  function showInfoHe(key, label) {
+    $('docHelpTitle').textContent = (DOC_LABEL[key] || label);
+    $('docHelpText').textContent = '';
+    let he = document.getElementById('docHelpHe');
+    if (!he) { openHelp(key, label, null); he = document.getElementById('docHelpHe'); }
+    he.textContent = DOC_HELP_HE[key] || '';
+    $('docHelpText').textContent = '';
+    $('docHelpOk').textContent = 'סגור';
+    pendingPick = null;
+    $('docHelp').classList.remove('hidden');
+  }
   function openHelp(key, label, inp) {
+    $('docHelpOk').textContent = 'เลือกไฟล์';
     $('docHelpTitle').textContent = label;
     $('docHelpText').textContent = DOC_HELP[key] || '';
+    let he = document.getElementById('docHelpHe');
+    if (!he) {
+      he = document.createElement('p');
+      he.id = 'docHelpHe';
+      he.dir = 'rtl';
+      he.style.cssText = 'font-size:15px;line-height:1.6;color:#6b5b8a;border-top:1px dashed var(--line);padding-top:10px';
+      $('docHelpText').insertAdjacentElement('afterend', he);
+    }
+    he.textContent = 'בעברית: ' + (DOC_HELP_HE[key] || '');
     pendingPick = inp;
     $('docHelp').classList.remove('hidden');
   }
@@ -278,10 +320,17 @@
     name.textContent = label;
     const star = document.createElement('b'); star.textContent = ' *'; star.style.color = '#c0392b'; star.style.display = 'none';
     name.appendChild(star); docStars[key] = star;
+    name.appendChild(info);
     const status = document.createElement('span');
     status.className = 'small';
     status.style.color = '#1e8e3e';
     docRows[key] = status;
+    // כפתור הסבר בעברית לכל מסמך (לשימוש המנהל כשהלקוח שואל)
+    const info = document.createElement('button');
+    info.textContent = 'ℹ️ הסבר';
+    info.type = 'button';
+    info.style.cssText = 'padding:2px 8px;font-size:13px;margin-inline-start:8px;vertical-align:middle';
+    info.addEventListener('click', (ev) => { ev.stopPropagation(); showInfoHe(key, label); });
     const btn = document.createElement('button');
     btn.textContent = '📎 อัปโหลด';
     btn.style.cssText = 'padding:8px 12px;font-size:15px;white-space:nowrap';
@@ -322,10 +371,12 @@
   async function refreshDocs() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const { data: ans } = await sb.from('loan_answers').select('user_id').eq('user_id', session.user.id).maybeSingle();
+    const { data: ans } = await sb.from('loan_answers').select('user_id, answers').eq('user_id', session.user.id).maybeSingle();
     const pendingKey = 'loanPending_' + session.user.id;
     let pending = null;
     try { pending = localStorage.getItem(pendingKey); } catch (e) {}
+    // בקשה שנשלחה: מציגים רק אישור ומספר בקשה, בלי גישה למסמכים
+    if (ans) { $('questionnaire').style.display = 'none'; showDone(ans.answers && ans.answers.request_no); return; }
     const finished = !!ans || !!pending;
     $('questionnaire').style.display = finished ? 'none' : '';
     $('docsCard').classList.toggle('hidden', !finished);
@@ -343,13 +394,32 @@
       return;
     }
     $('docsLock').classList.add('hidden');
-    if (pending && !ans) {
-      const { error: e2 } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: JSON.parse(pending) });
-      if (e2) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
-      try { localStorage.removeItem(pendingKey); } catch (e) {}
+    const pendingData = JSON.parse(pending);
+    const { error: e2 } = await sb.from('loan_answers').insert({ user_id: session.user.id, answers: pendingData });
+    if (e2) { alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง หรือติดต่อเจ้าหน้าที่'); return; }
+    try { localStorage.removeItem(pendingKey); } catch (e) {}
+    showDone(pendingData.request_no);
+  }
+
+  // หน้าสิ้นสุด: ข้อความขอบคุณและหมายเลขคำขอ 5 หลัก (ไม่มีลิงก์หรือรายการเอกสาร)
+  function showDone(no) {
+    $('docsCard').classList.add('hidden');
+    $('docsLock').classList.add('hidden');
+    let box = document.getElementById('doneBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'doneBox';
+      box.className = 'card';
+      $('formArea').appendChild(box);
     }
-    $('docsMsg').textContent = 'ส่งคำขอเรียบร้อยแล้ว ขอบคุณ เจ้าหน้าที่จะติดต่อกลับโดยเร็ว';
-    $('docsMsg').style.cssText = 'color:#1e8e3e;font-weight:bold;margin-top:8px';
+    const num = no ? String(no).replace(/\D/g, '') : '';
+    box.innerHTML = '<div style="text-align:center;padding:18px 8px">'
+      + '<div style="font-size:44px">✅</div>'
+      + '<h3 style="margin:8px 0">ส่งคำขอเรียบร้อยแล้ว</h3>'
+      + '<p>ขอบคุณ เจ้าหน้าที่จะติดต่อกลับโดยเร็ว</p>'
+      + (num ? '<p>หมายเลขคำขอของคุณ: <b style="font-size:22px;letter-spacing:2px">' + num + '</b></p>' : '')
+      + '</div>';
+    box.classList.remove('hidden');
   }
 
   // כניסת מנהל בקישור במייל (כמו בידידים)
@@ -452,6 +522,43 @@
       </div>`;
   }
 
+  // התראה על בקשות חדשות: נשמר לכל מכשיר בנפרד (רק לנוחות, לא ניתן לשתף)
+  let ownerRows = [];
+  function getSeen() {
+    try { return new Set(JSON.parse(localStorage.getItem('loanSeenReq') || '[]')); } catch (e) { return new Set(); }
+  }
+  function setSeen(set) {
+    try { localStorage.setItem('loanSeenReq', JSON.stringify([...set])); } catch (e) {}
+  }
+  function refreshNewCount() {
+    const seen = getSeen();
+    const n = ownerRows.filter(x => !seen.has(x.user_id)).length;
+    $('ownerMsg').textContent = n ? 'בקשות חדשות שלא נקראו: ' + n : 'אין בקשות חדשות.';
+  }
+  // סימון "נקרא" מתוך הכרטיס, ורענון הרשימה לפי שם
+  $('ownerList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-seen]');
+    if (!b) return;
+    const seen = getSeen();
+    seen.add(b.dataset.seen);
+    setSeen(seen);
+    const badge = b.closest('[data-badge]');
+    if (badge) badge.remove();
+    refreshNewCount();
+  });
+  // כפתור "סיכום בקשות לפי שם": רשימה ממוינת לפי שם
+  $('byNameBtn').addEventListener('click', () => {
+    const card = $('byNameCard');
+    const opening = card.classList.contains('hidden');
+    card.classList.toggle('hidden', !opening);
+    if (!opening) return;
+    const seen = getSeen();
+    const rows = [...ownerRows].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+    $('byNameList').innerHTML = rows.length
+      ? rows.map(x => `<div class="kv"><span><b>${esc(x.name || 'ללא שם')}</b> · מס׳ ${esc(String(x.request_no || '—'))}</span><span class="small">${new Date(x.submitted_at).toLocaleString('he-IL')} · ${seen.has(x.user_id) ? 'נקראה' : '<b style="color:#c0392b">חדשה</b>'}</span></div>`).join('')
+      : '<div class="small">אין בקשות.</div>';
+  });
+
   // רשימת בקשות ואישור/דחייה שמוחקים את התשובות
   async function loadOwner() {
     const { data: answers, error } = await sb.from('loan_answers').select('user_id, answers, submitted_at').order('submitted_at', { ascending: false });
@@ -459,12 +566,23 @@
     const { data: profiles } = await sb.from('loan_profiles').select('id, full_name, trial_ends_at');
     const byId = Object.fromEntries((profiles || []).map(p => [p.id, p]));
     if (!answers || !answers.length) { $('ownerList').textContent = 'אין בקשות ממתינות.'; return; }
+    ownerRows = answers.map(r => ({
+      user_id: r.user_id,
+      name: (byId[r.user_id] || {}).full_name || (r.answers && r.answers.name) || '',
+      request_no: r.answers && r.answers.request_no,
+      submitted_at: r.submitted_at
+    }));
+    refreshNewCount();
+    const seenNow = getSeen();
     $('ownerList').innerHTML = answers.map(r => {
       const p = byId[r.user_id] || {};
       const name = p.full_name || (r.answers && r.answers.name) || '';
+      const badge = seenNow.has(r.user_id) ? '' : `<div data-badge="1" style="background:#fde8e8;color:#c0392b;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-weight:bold">🔔 חדש: הלקוח סיים את השאלון · <button class="ghost" data-seen="${r.user_id}">סמן כנקרא</button></div>`;
       return `<div class="card">
+          ${badge}
           ${renderSummary(r.answers || {}, name)}
-          <div class="muted">הוגש: ${new Date(r.submitted_at).toLocaleString('he-IL')}</div>
+          <div id="docs-${r.user_id}" class="docbox"><div class="small">טוען מסמכים...</div></div>
+          <div class="muted">הוגש:${new Date(r.submitted_at).toLocaleString('he-IL')}${r.answers && r.answers.request_no ? ' · מס׳ בקשה: ' + esc(String(r.answers.request_no)) : ''}</div>
           <div style="margin-top:10px">
             <button data-ok="${r.user_id}" data-name="${esc(name)}">אשר</button>
             <button class="ghost" data-no="${r.user_id}" data-name="${esc(name)}">דחה</button>
@@ -472,6 +590,80 @@
         </div>`;
     }).join('');
     document.querySelectorAll('[data-ok],[data-no]').forEach(b => b.addEventListener('click', () => decide(b)));
+    answers.forEach(loadDocsFor);
+  }
+
+  // בדיקת מהימנות: המסמכים שהועלו מול מה שנאמר בשאלון
+  const DOC_LABEL = { id: 'תעודת זהות / דרכון', salary: 'תלוש שכר', payslip: 'תלוש שכר', bank: 'דף חשבון בנק', self: 'רישום עסק ודוחות מס', business: 'מסמכי עסק', tax: 'דוח מס', bizbank: 'דף חשבון עסקי', guarantor: 'ערב / בטוחה', income: 'מעקב הכנסות יומי', loans: 'הסכמי הלוואות קיימות', lease: 'אישור נכס / חוזה שכירות', collateral: 'מסמכי שעבוד על בטוחה בעסק', other: 'מסמך אחר' };
+  // סיכום לפי נושא: גרף עוגה וטבלה לפי המסמכים שהועלו (ירוק = הועלה, אדום = חסר)
+  function topicsSummaryHtml(keys) {
+    const has = k => keys.includes(k);
+    const topics = [
+      { label: 'תעודת זהות', ok: has('id') },
+      { label: 'דפי חשבון בנק', ok: has('bank') },
+      { label: 'מעקב הכנסות יומי', ok: has('income') },
+      { label: 'הסכמי הלוואות', ok: has('loans') },
+      { label: 'נכס או חוזה שכירות', ok: has('lease') },
+      { label: 'שעבוד על בטוחה', ok: has('collateral') },
+      { label: 'מסמך נוסף (הסבר להפקדות)', ok: has('other') }
+    ];
+    const col = t => t.ok ? '#16a34a' : '#dc2626';
+    const n = topics.length, step = 360 / n, cx = 60, cy = 60, r = 56;
+    const paths = topics.map((t, i) => {
+      const a0 = (-90 + i * step) * Math.PI / 180, a1 = (-90 + (i + 1) * step) * Math.PI / 180;
+      const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+      return `<path d="M${cx} ${cy} L${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${col(t)}" stroke="#fff" stroke-width="1.5"/>`;
+    }).join('');
+    const done = topics.filter(t => t.ok).length;
+    const rows = topics.map(t => `<div class="small" style="display:flex;align-items:center;gap:6px;margin:3px 0"><span style="width:10px;height:10px;border-radius:2px;background:${col(t)};display:inline-block"></span>${esc(t.label)}: ${t.ok ? 'הועלה' : 'חסר'}</div>`).join('');
+    return `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="מצב הנושאים">${paths}</svg>
+      <div style="flex:1;min-width:180px">${rows}<div class="small" style="margin-top:4px">הושלמו ${done} מתוך ${n}. ניתוח דף החשבון נעשה מחוץ לאפליקציה.</div></div></div>`;
+  }
+
+  async function loadDocsFor(r) {
+    const box = document.getElementById('docs-' + r.user_id);
+    if (!box) return;
+    const { data: files, error } = await sb.storage.from('loan-documents').list(r.user_id, { limit: 200 });
+    if (error) { box.textContent = 'שגיאה בטעינת מסמכים: ' + error.message; return; }
+    const items = (files || []).filter(f => f.name && f.name.includes('__'));
+    const signed = await Promise.all(items.map(f => sb.storage.from('loan-documents').createSignedUrl(r.user_id + '/' + f.name, 3600)));
+    const ans = r.answers || {};
+    const keys = items.map(f => f.name.split('__')[0]);
+    const list = items.length
+      ? items.map((f, i) => {
+          const url = signed[i] && signed[i].data ? signed[i].data.signedUrl : '';
+          const label = DOC_LABEL[keys[i]] || keys[i];
+          const fname = f.name.split('__').slice(1).join('__').replace(/^\d+-/, '');
+          return `<div class="kv"><span>${esc(label)}</span>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">פתח: ${esc(fname)}</a>` : '<b>אין קישור</b>'}</div>`;
+        }).join('')
+      : '<div class="small">לא הועלו מסמכים עדיין.</div>';
+    const missing = [];
+    if (!keys.includes('id')) missing.push('תעודת זהות');
+    if (!keys.includes('bank')) missing.push('דף חשבון בנק');
+    box.innerHTML = `
+      <div class="sum-sec"><div class="sum-title">מסמכים שהועלו</div>${topicsSummaryHtml(keys)}${list}
+        ${missing.length ? `<div class="small" style="color:#c0392b;margin-top:6px">חסר: ${missing.map(esc).join(', ')}</div>` : ''}
+      </div>
+      <div class="sum-sec"><div class="sum-title">השוואה: מה נאמר בשאלון מול המסמך</div>
+        <div class="kv"><span>הכנסה בשאלון</span><b>${esc(ans.income !== undefined ? L.income[+ans.income] : '—')}</b></div>
+        <label class="small">הכנסה שמופיעה במסמך (בחר לפי התלוש או דף החשבון):
+          <select data-docinc style="width:100%;margin-top:4px">
+            <option value="">— בחר —</option>
+            ${L.income.map((t, i) => `<option value="${i}">${esc(t)}</option>`).join('')}
+          </select>
+        </label>
+        <div class="docres small" style="margin-top:6px"></div>
+      </div>`;
+    const sel = box.querySelector('[data-docinc]');
+    const res = box.querySelector('.docres');
+    sel.addEventListener('change', () => {
+      if (sel.value === '' || ans.income === undefined) { res.textContent = ''; return; }
+      const d = Math.abs(+sel.value - +ans.income);
+      if (d === 0) res.innerHTML = '<b style="color:#1e8e3e">✔ תואם לשאלון</b>';
+      else if (d === 1) res.innerHTML = '<b style="color:#c98a13">טווח סמוך: כדאי לברר</b>';
+      else res.innerHTML = '<b style="color:#c0392b">✖ לא תואם: לברר לפני החלטה</b>';
+    });
   }
 
   async function decide(btn) {
